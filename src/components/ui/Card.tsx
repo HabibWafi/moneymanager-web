@@ -13,7 +13,7 @@ export default function Card({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 ${className}`}
+      className={`bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-card p-5 ${className}`}
     >
       {children}
     </div>

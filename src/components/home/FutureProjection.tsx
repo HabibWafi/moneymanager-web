@@ -47,7 +47,7 @@ export default function FutureProjection() {
       </h3>
       <div className="space-y-2">
         {months.map((mo, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 transition-colors">
+          <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/40 hover:bg-indigo-100/50 transition-colors">
             <span className="text-xs font-semibold text-slate-500 w-20">{mo.label}</span>
             <div className="flex-1 grid grid-cols-3 gap-2 text-xs">
               <div>

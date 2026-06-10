@@ -34,7 +34,7 @@ export default function InvestasiPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-800">Investasi</h1>
+        <h1 className="text-xl font-bold text-slate-900">Investasi</h1>
         <div className="flex gap-2">
           <Button size="sm" variant="secondary" onClick={loadCryptoPrices} disabled={cryptoLoading}>
             <RefreshCw size={14} className={cryptoLoading ? "animate-spin" : ""} /> Harga
@@ -46,9 +46,9 @@ export default function InvestasiPage() {
       </div>
 
       {/* Summary */}
-      <Card className="bg-gradient-to-br from-violet-50 to-indigo-50 border-violet-100">
+      <Card className="bg-gradient-to-br from-violet-100 to-indigo-100 border-violet-200/60">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-violet-200 rounded-xl flex items-center justify-center">
             <TrendingUp size={20} className="text-violet-600" />
           </div>
           <div>
@@ -62,12 +62,12 @@ export default function InvestasiPage() {
       {tipes.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           <button onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${filter === "all" ? "bg-indigo-600 text-white shadow-sm" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+            className={`px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${filter === "all" ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200/50" : "bg-white/80 border border-slate-200/60 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"}`}>
             Semua
           </button>
           {tipes.map((t) => (
             <button key={t} onClick={() => setFilter(t)}
-              className={`px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${filter === t ? "bg-indigo-600 text-white shadow-sm" : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+              className={`px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${filter === t ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200/50" : "bg-white/80 border border-slate-200/60 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"}`}>
               {INV_TIPE_LABEL[t]}
             </button>
           ))}

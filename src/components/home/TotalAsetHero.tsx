@@ -34,7 +34,7 @@ export default function TotalAsetHero() {
   const isPositive = gain >= 0;
 
   return (
-    <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-2xl p-6 md:p-8 text-white shadow-lg shadow-indigo-200">
+    <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 rounded-2xl p-6 md:p-8 text-white shadow-xl shadow-indigo-300/40">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
           <Wallet size={20} />
@@ -43,11 +43,11 @@ export default function TotalAsetHero() {
       </div>
       <p className="text-3xl md:text-4xl font-bold mb-6">{fmt(totalAset)}</p>
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+        <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/10">
           <p className="text-indigo-200 text-xs mb-1">Saldo Bank/Cash</p>
           <p className="text-lg font-bold">{fmt(totalBank)}</p>
         </div>
-        <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+        <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/10">
           <p className="text-indigo-200 text-xs mb-1">Portfolio Investasi</p>
           <p className="text-lg font-bold">{fmt(totalInv)}</p>
           {totalInvBeli > 0 && (

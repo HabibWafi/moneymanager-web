@@ -21,16 +21,16 @@ export default function HutangPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-800">Hutang & Cicilan</h1>
+        <h1 className="text-xl font-bold text-slate-900">Hutang & Cicilan</h1>
         <Button size="sm" onClick={() => setShowAdd(true)}>
           <Plus size={16} /> Tambah
         </Button>
       </div>
 
       {/* Summary */}
-      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100">
+      <Card className="bg-gradient-to-br from-amber-100 to-orange-100 border-amber-200/60">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-amber-200 rounded-xl flex items-center justify-center">
             <CreditCard size={20} className="text-amber-600" />
           </div>
           <h3 className="text-sm font-semibold text-slate-700">Ringkasan Hutang</h3>

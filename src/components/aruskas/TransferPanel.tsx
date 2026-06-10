@@ -28,7 +28,7 @@ export default function TransferPanel({ onTransfer }: { onTransfer: () => void }
             const dari = banks.find((b) => b.id === t.dari);
             const ke = banks.find((b) => b.id === t.ke);
             return (
-              <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+              <div key={t.id} className="flex items-center justify-between p-3 bg-indigo-50/40 border border-indigo-100/40 rounded-xl">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: dari?.warna || "#94a3b8" }} />
                   <span className="text-xs text-slate-600">{dari?.nama || "?"}</span>

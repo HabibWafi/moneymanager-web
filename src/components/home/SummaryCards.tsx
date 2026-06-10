@@ -35,40 +35,44 @@ export default function SummaryCards() {
       label: "Pemasukan",
       value: fmt(totalIncome),
       icon: ArrowDownLeft,
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-500",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
       valueColor: "text-emerald-600",
+      hoverShadow: "hover:shadow-glow-emerald",
     },
     {
       label: "Pengeluaran",
       value: fmt(totalExpense),
       icon: ArrowUpRight,
-      iconBg: "bg-red-50",
+      iconBg: "bg-red-100",
       iconColor: "text-red-500",
       valueColor: "text-red-600",
+      hoverShadow: "hover:shadow-glow-red",
     },
     {
       label: "Sisa",
       value: fmt(sisa),
       icon: PiggyBank,
-      iconBg: "bg-indigo-50",
-      iconColor: "text-indigo-500",
+      iconBg: "bg-indigo-100",
+      iconColor: "text-indigo-600",
       valueColor: sisa >= 0 ? "text-indigo-600" : "text-red-600",
+      hoverShadow: "hover:shadow-glow-indigo",
     },
     {
       label: "Rasio Tabungan",
       value: `${rasioTabungan}%`,
       icon: Landmark,
-      iconBg: "bg-violet-50",
-      iconColor: "text-violet-500",
+      iconBg: "bg-violet-100",
+      iconColor: "text-violet-600",
       valueColor: "text-violet-600",
+      hoverShadow: "hover:shadow-glow-violet",
     },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
       {cards.map((c) => (
-        <Card key={c.label} className="hover:shadow-md transition-shadow duration-200">
+        <Card key={c.label} className={`${c.hoverShadow} transition-shadow duration-200`}>
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 rounded-xl ${c.iconBg} flex items-center justify-center flex-shrink-0`}>
               <c.icon size={18} className={c.iconColor} />

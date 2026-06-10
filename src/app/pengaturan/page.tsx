@@ -60,7 +60,7 @@ export default function PengaturanPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-      <h1 className="text-xl font-bold text-slate-800">Pengaturan</h1>
+      <h1 className="text-xl font-bold text-slate-900">Pengaturan</h1>
 
       {/* Banks */}
       <Card>
@@ -75,7 +75,7 @@ export default function PengaturanPage() {
         ) : (
           <div className="space-y-2">
             {banks.map((b) => (
-              <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group">
+              <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: b.warna }} />
                   <div>
@@ -108,7 +108,7 @@ export default function PengaturanPage() {
         ) : (
           <div className="space-y-2">
             {pendapatanRutin.map((p) => (
-              <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group">
+              <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
                 <div className="flex items-center gap-3">
                   <button onClick={() => togglePR(p.id)} className="text-slate-400 hover:text-indigo-500 transition-colors">
                     {p.aktif ? <ToggleRight size={20} className="text-emerald-500" /> : <ToggleLeft size={20} />}
@@ -143,7 +143,7 @@ export default function PengaturanPage() {
         ) : (
           <div className="space-y-2">
             {expRutin.map((e) => (
-              <div key={e.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group">
+              <div key={e.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
                 <div>
                   <p className="text-sm font-medium text-slate-700">{e.nama}</p>
                   <div className="flex items-center gap-2">
