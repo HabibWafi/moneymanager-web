@@ -1,0 +1,293 @@
+import type {
+  Bank,
+  BankTransfer,
+  PendapatanRutin,
+  IncomeExtra,
+  ExpRutin,
+  ExpExtra,
+  Hutang,
+  Investasi,
+} from "@/lib/types";
+
+// ---------------------------------------------------------------------------
+// Bank
+// ---------------------------------------------------------------------------
+
+export function dbToBank(row: any): Bank {
+  return {
+    id: row.id,
+    nama: row.nama,
+    saldo: Number(row.saldo),
+    warna: row.warna,
+    tipe: row.tipe,
+  };
+}
+
+export function bankToDb(bank: Bank, userId: string) {
+  return {
+    id: bank.id,
+    user_id: userId,
+    nama: bank.nama,
+    saldo: bank.saldo,
+    warna: bank.warna,
+    tipe: bank.tipe,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BankTransfer
+// ---------------------------------------------------------------------------
+
+export function dbToBankTransfer(row: any): BankTransfer {
+  return {
+    id: row.id,
+    dari: row.dari,
+    ke: row.ke,
+    jumlah: Number(row.jumlah),
+    ket: row.ket,
+    tgl: row.tgl,
+  };
+}
+
+export function bankTransferToDb(t: BankTransfer, userId: string) {
+  return {
+    id: t.id,
+    user_id: userId,
+    dari: t.dari,
+    ke: t.ke,
+    jumlah: t.jumlah,
+    ket: t.ket,
+    tgl: t.tgl,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// PendapatanRutin (income_routine)
+// ---------------------------------------------------------------------------
+
+export function dbToPendapatanRutin(row: any): PendapatanRutin {
+  return {
+    id: row.id,
+    nama: row.nama,
+    jumlah: Number(row.jumlah),
+    tipe: row.tipe,
+    kat: row.kat,
+    aktif: row.aktif,
+  };
+}
+
+export function pendapatanRutinToDb(p: PendapatanRutin, userId: string) {
+  return {
+    id: p.id,
+    user_id: userId,
+    nama: p.nama,
+    jumlah: p.jumlah,
+    tipe: p.tipe,
+    kat: p.kat,
+    aktif: p.aktif,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// IncomeExtra
+// ---------------------------------------------------------------------------
+
+export function dbToIncomeExtra(row: any): IncomeExtra {
+  return {
+    id: row.id,
+    bk: row.bk,
+    kat: row.kat,
+    desc: row.desc,
+    jumlah: Number(row.jumlah),
+    sumber: row.sumber,
+  };
+}
+
+export function incomeExtraToDb(x: IncomeExtra, userId: string) {
+  return {
+    id: x.id,
+    user_id: userId,
+    bk: x.bk,
+    kat: x.kat,
+    desc: x.desc,
+    jumlah: x.jumlah,
+    sumber: x.sumber,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ExpRutin (expense_routine)
+// ---------------------------------------------------------------------------
+
+export function dbToExpRutin(row: any): ExpRutin {
+  return {
+    id: row.id,
+    nama: row.nama,
+    jumlah: Number(row.jumlah),
+    tipe: row.tipe,
+    mulaiY: row.mulai_y,
+    mulaiM: row.mulai_m,
+    selesaiY: row.selesai_y,
+    selesaiM: row.selesai_m,
+    kat: row.kat,
+  };
+}
+
+export function expRutinToDb(e: ExpRutin, userId: string) {
+  return {
+    id: e.id,
+    user_id: userId,
+    nama: e.nama,
+    jumlah: e.jumlah,
+    tipe: e.tipe,
+    mulai_y: e.mulaiY,
+    mulai_m: e.mulaiM,
+    selesai_y: e.selesaiY,
+    selesai_m: e.selesaiM,
+    kat: e.kat,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ExpExtra (expense_extra)
+// ---------------------------------------------------------------------------
+
+export function dbToExpExtra(row: any): ExpExtra {
+  return {
+    id: row.id,
+    bk: row.bk,
+    kat: row.kat,
+    desc: row.desc,
+    jumlah: Number(row.jumlah),
+    sumber: row.sumber,
+  };
+}
+
+export function expExtraToDb(x: ExpExtra, userId: string) {
+  return {
+    id: x.id,
+    user_id: userId,
+    bk: x.bk,
+    kat: x.kat,
+    desc: x.desc,
+    jumlah: x.jumlah,
+    sumber: x.sumber,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Hutang (debts)
+// ---------------------------------------------------------------------------
+
+export function dbToHutang(row: any): Hutang {
+  return {
+    id: row.id,
+    nama: row.nama,
+    htipe: row.htipe,
+    cicilan: Number(row.cicilan),
+    pokok: Number(row.pokok),
+    sudah: Number(row.sudah),
+    mulaiY: row.mulai_y,
+    mulaiM: row.mulai_m,
+    selesaiY: row.selesai_y,
+    selesaiM: row.selesai_m,
+  };
+}
+
+export function hutangToDb(h: Hutang, userId: string) {
+  return {
+    id: h.id,
+    user_id: userId,
+    nama: h.nama,
+    htipe: h.htipe,
+    cicilan: h.cicilan,
+    pokok: h.pokok,
+    sudah: h.sudah,
+    mulai_y: h.mulaiY,
+    mulai_m: h.mulaiM,
+    selesai_y: h.selesaiY,
+    selesai_m: h.selesaiM,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Investasi (investments)
+// ---------------------------------------------------------------------------
+
+export function dbToInvestasi(row: any): Investasi {
+  return {
+    id: row.id,
+    tipe: row.tipe,
+    currency: row.currency,
+    nama: row.nama,
+    sym: row.sym,
+    kode: row.kode,
+    bank: row.bank,
+    lot: row.lot != null ? Number(row.lot) : undefined,
+    gram: row.gram != null ? Number(row.gram) : undefined,
+    jml: row.jml != null ? Number(row.jml) : undefined,
+    unit: row.unit != null ? Number(row.unit) : undefined,
+    hargaBeli: row.harga_beli != null ? Number(row.harga_beli) : undefined,
+    hargaSkrg: row.harga_skrg != null ? Number(row.harga_skrg) : undefined,
+    nabBeli: row.nab_beli != null ? Number(row.nab_beli) : undefined,
+    nabSkrg: row.nab_skrg != null ? Number(row.nab_skrg) : undefined,
+    nominal: row.nominal != null ? Number(row.nominal) : undefined,
+    kupon: row.kupon != null ? Number(row.kupon) : undefined,
+    jatuhTempo: row.jatuh_tempo,
+    pokok: row.pokok != null ? Number(row.pokok) : undefined,
+    bunga: row.bunga != null ? Number(row.bunga) : undefined,
+    tanggalMulai: row.tanggal_mulai,
+    tanggalCair: row.tanggal_cair,
+    coinId: row.coin_id,
+    manajer: row.manajer,
+  };
+}
+
+export function investasiToDb(inv: Investasi, userId: string) {
+  return {
+    id: inv.id,
+    user_id: userId,
+    tipe: inv.tipe,
+    currency: inv.currency,
+    nama: inv.nama,
+    sym: inv.sym,
+    kode: inv.kode,
+    bank: inv.bank,
+    lot: inv.lot,
+    gram: inv.gram,
+    jml: inv.jml,
+    unit: inv.unit,
+    harga_beli: inv.hargaBeli,
+    harga_skrg: inv.hargaSkrg,
+    nab_beli: inv.nabBeli,
+    nab_skrg: inv.nabSkrg,
+    nominal: inv.nominal,
+    kupon: inv.kupon,
+    jatuh_tempo: inv.jatuhTempo,
+    pokok: inv.pokok,
+    bunga: inv.bunga,
+    tanggal_mulai: inv.tanggalMulai,
+    tanggal_cair: inv.tanggalCair,
+    coin_id: inv.coinId,
+    manajer: inv.manajer,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Holidays
+// ---------------------------------------------------------------------------
+
+export function dbToHoliday(row: any): { bk: string; days: number[] } {
+  return {
+    bk: row.bk,
+    days: row.days ?? [],
+  };
+}
+
+export function holidayToDb(bk: string, days: number[], userId: string) {
+  return {
+    user_id: userId,
+    bk,
+    days,
+  };
+}

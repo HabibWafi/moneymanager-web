@@ -17,13 +17,19 @@ export const SAHAM_LIST = [
   "ADRO", "ITMG", "UNTR", "MDKA",
 ];
 
+export const US_STOCK_LIST = [
+  "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "BRK-B",
+  "JPM", "V", "JNJ", "WMT", "PG", "MA", "UNH", "HD", "DIS", "BAC",
+  "NFLX", "ADBE", "CRM", "AMD", "INTC", "PYPL", "COIN",
+];
+
 export const KI = [
-  "Gaji", "Tunjangan", "Bonus/THR", "Freelance", "Bisnis", "Investasi", "Lainnya",
+  "Salary", "Allowance", "Bonus/THR", "Freelance", "Business", "Investment", "Other",
 ];
 
 export const KE = [
-  "Makanan", "Transportasi", "Belanja", "Tagihan", "Hiburan",
-  "Kesehatan", "Pendidikan", "Cicilan", "Donasi", "Lainnya",
+  "Food", "Transport", "Shopping", "Bills", "Entertainment",
+  "Health", "Education", "Installment", "Donation", "Other",
 ];
 
 export const BANK_COLORS = [
@@ -32,12 +38,12 @@ export const BANK_COLORS = [
 ];
 
 export const INV_TIPE_LABEL: Record<string, string> = {
-  saham: "Saham",
-  emas: "Emas",
-  kripto: "Kripto",
-  obligasi: "Obligasi",
-  deposito: "Deposito",
-  reksadana: "Reksadana",
+  saham: "Stocks",
+  emas: "Gold",
+  kripto: "Crypto",
+  obligasi: "Bonds",
+  deposito: "Deposits",
+  reksadana: "Mutual Funds",
 };
 
 export const INV_TIPE_COLORS: Record<string, string> = {
@@ -47,17 +53,4 @@ export const INV_TIPE_COLORS: Record<string, string> = {
   obligasi: "#059669",
   deposito: "#0891B2",
   reksadana: "#DB2777",
-};
-
-export const DEFAULT_DATA = {
-  banks: [],
-  bankTrf: [],
-  pendapatanRutin: [],
-  incEx: [],
-  expRutin: [],
-  expEx: [],
-  hutang: [],
-  inv: [],
-  cuti: {},
-  cryptoCache: {},
 };

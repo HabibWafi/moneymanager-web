@@ -61,6 +61,7 @@ export interface Hutang {
 export interface Investasi {
   id: string;
   tipe: "saham" | "emas" | "kripto" | "obligasi" | "deposito" | "reksadana";
+  currency?: "IDR" | "USD";
   nama?: string;
   sym?: string;
   kode?: string;
@@ -103,5 +104,4 @@ export interface AppData {
   hutang: Hutang[];
   inv: Investasi[];
   cuti: Record<string, number[]>;
-  cryptoCache: Record<string, { price: number; ts: number }>;
 }
