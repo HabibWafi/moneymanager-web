@@ -45,7 +45,7 @@ export default function HutangCard({ item, onDelete }: { item: Hutang; onDelete:
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-200/60 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? "bg-emerald-500" : pct >= 70 ? "bg-amber-500" : "bg-indigo-500"}`}
           style={{ width: `${pct}%` }}

@@ -53,7 +53,7 @@ export default function WealthAllocationChart() {
             </Pie>
             <Tooltip
               formatter={(value) => fmt(Number(value))}
-              contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", fontSize: "12px" }}
+              contentStyle={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)", border: "1px solid rgba(226,232,240,0.6)", borderRadius: "12px", fontSize: "12px" }}
             />
           </PieChart>
         </ResponsiveContainer>

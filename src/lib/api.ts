@@ -1,31 +1,34 @@
-export async function fetchCryptoPrices(ids: string[]): Promise<Record<string, number>> {
+export async function fetchCryptoPrices(
+  ids: string[]
+): Promise<Record<string, { idr: number; usd: number }>> {
   try {
     const joined = ids.join(",");
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${joined}&vs_currencies=idr`
-    );
-    if (!res.ok) throw new Error("Failed");
-    const data = await res.json();
-    const prices: Record<string, number> = {};
-    for (const id of ids) {
-      if (data[id]?.idr) prices[id] = data[id].idr;
-    }
-    return prices;
+    const res = await fetch(`/api/prices/crypto?ids=${joined}`);
+    if (!res.ok) throw new Error("Failed to fetch crypto prices");
+    return await res.json();
   } catch {
     return {};
   }
 }
 
-export async function fetchStockPrice(kode: string): Promise<number | null> {
+export async function fetchStockPrices(
+  symbols: string[]
+): Promise<Record<string, { idr: number | null; usd: number | null }>> {
   try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${kode}.JK?interval=1d&range=1d`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return price ?? null;
+    const joined = symbols.join(",");
+    const res = await fetch(`/api/prices/stocks?symbols=${joined}`);
+    if (!res.ok) throw new Error("Failed to fetch stock prices");
+    return await res.json();
   } catch {
-    return null;
+    return {};
   }
+}
+
+export async function fetchStockPrice(
+  symbol: string
+): Promise<number | null> {
+  const result = await fetchStockPrices([symbol]);
+  const data = result[symbol];
+  if (!data) return null;
+  return data.idr ?? data.usd ?? null;
 }

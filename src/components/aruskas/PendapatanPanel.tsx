@@ -38,7 +38,7 @@ export default function PendapatanPanel({ onAddExtra }: { onAddExtra: () => void
       ) : (
         <div className="space-y-2 mb-4">
           {rutinItems.map((p) => (
-            <div key={p.id} className="flex items-center justify-between p-3 bg-emerald-50/50 rounded-xl">
+            <div key={p.id} className="flex items-center justify-between p-3 bg-emerald-50/80 border border-emerald-100/60 rounded-xl">
               <div>
                 <p className="text-sm font-medium text-slate-700">{p.nama}</p>
                 <p className="text-xs text-slate-400">{p.kat} · {p.tipe === "tetap" ? "Bulanan" : `Harian (${hk} HK)`}</p>
@@ -63,7 +63,7 @@ export default function PendapatanPanel({ onAddExtra }: { onAddExtra: () => void
       ) : (
         <div className="space-y-2">
           {extraItems.map((x) => (
-            <div key={x.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group">
+            <div key={x.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
               <div>
                 <p className="text-sm font-medium text-slate-700">{x.desc}</p>
                 <p className="text-xs text-slate-400">{x.kat}</p>

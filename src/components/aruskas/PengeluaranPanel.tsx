@@ -34,7 +34,7 @@ export default function PengeluaranPanel({ onAddExtra }: { onAddExtra: () => voi
       ) : (
         <div className="space-y-2 mb-4">
           {rutinItems.map((e) => (
-            <div key={e.id} className="flex items-center justify-between p-3 bg-red-50/50 rounded-xl">
+            <div key={e.id} className="flex items-center justify-between p-3 bg-red-50/80 border border-red-100/60 rounded-xl">
               <div>
                 <p className="text-sm font-medium text-slate-700">{e.nama}</p>
                 <p className="text-xs text-slate-400">{e.kat} · {e.tipe === "tetap" ? "Tetap" : "Cicilan"}</p>
@@ -57,7 +57,7 @@ export default function PengeluaranPanel({ onAddExtra }: { onAddExtra: () => voi
       ) : (
         <div className="space-y-2">
           {extraItems.map((x) => (
-            <div key={x.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group">
+            <div key={x.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
               <div>
                 <p className="text-sm font-medium text-slate-700">{x.desc}</p>
                 <p className="text-xs text-slate-400">{x.kat}</p>

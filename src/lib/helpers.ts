@@ -1,13 +1,19 @@
-export function fmt(n: number): string {
+export function fmt(n: number, currency: "IDR" | "USD" = "IDR"): string {
+  if (currency === "USD") return fmtUsd(n);
   return "Rp " + n.toLocaleString("id-ID");
 }
 
-export function fmtS(n: number): string {
-  if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(1) + "T";
-  if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(1) + "M";
-  if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(1) + "jt";
-  if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(0) + "rb";
-  return n.toString();
+export function fmtUsd(n: number): string {
+  return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function fmtS(n: number, currency: "IDR" | "USD" = "IDR"): string {
+  const prefix = currency === "USD" ? "$" : "Rp ";
+  if (Math.abs(n) >= 1e12) return prefix + (n / 1e12).toFixed(1) + "T";
+  if (Math.abs(n) >= 1e9) return prefix + (n / 1e9).toFixed(1) + "B";
+  if (Math.abs(n) >= 1e6) return prefix + (n / 1e6).toFixed(1) + "M";
+  if (Math.abs(n) >= 1e3) return prefix + (n / 1e3).toFixed(0) + "K";
+  return prefix + n.toString();
 }
 
 export function gc(i: number): string {
@@ -35,7 +41,7 @@ export function mOpts(count = 12): { label: string; value: string }[] {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
-    const label = d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+    const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
     opts.push({ label, value: ymk(y, m) });
   }
   return opts;

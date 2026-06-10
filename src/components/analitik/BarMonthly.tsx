@@ -38,10 +38,10 @@ export default function BarMonthly() {
       <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
             <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
             <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickFormatter={(v) => (v / 1e6).toFixed(0) + "jt"} />
-            <Tooltip formatter={(value) => fmt(Number(value))} contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", fontSize: "12px" }} />
+            <Tooltip formatter={(value) => fmt(Number(value))} contentStyle={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(8px)", border: "1px solid rgba(226,232,240,0.6)", borderRadius: "12px", fontSize: "12px" }} />
             <Bar dataKey="Pemasukan" fill="#10B981" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Pengeluaran" fill="#EF4444" radius={[4, 4, 0, 0]} />
           </BarChart>
