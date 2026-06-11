@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { fmt } from "@/lib/helpers";
 import { INV_TIPE_LABEL } from "@/lib/constants";
+import type { Investasi } from "@/lib/types";
 import InvCard from "@/components/investasi/InvCard";
 import AddInvestasiModal from "@/components/modals/AddInvestasiModal";
 import Button from "@/components/ui/Button";
@@ -13,10 +14,19 @@ export default function InvestasiPage() {
   const inv = useAppStore((s) => s.inv);
   const delInv = useAppStore((s) => s.delInv);
   const loadCryptoPrices = useAppStore((s) => s.loadCryptoPrices);
+  const loadStockPrices = useAppStore((s) => s.loadStockPrices);
   const cryptoLoading = useAppStore((s) => s.cryptoLoading);
 
   const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<Investasi | null>(null);
   const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    const hasCrypto = inv.some((i) => i.tipe === "kripto" && i.coinId);
+    const hasStocks = inv.some((i) => i.tipe === "saham" && i.kode);
+    if (hasCrypto) loadCryptoPrices();
+    if (hasStocks) loadStockPrices();
+  }, []);
 
   const filtered = filter === "all" ? inv : inv.filter((i) => i.tipe === filter);
   const tipes = [...new Set(inv.map((i) => i.tipe))];
@@ -31,12 +41,24 @@ export default function InvestasiPage() {
     return a;
   }, 0);
 
+  const handleRefresh = async () => {
+    const hasCrypto = inv.some((i) => i.tipe === "kripto" && i.coinId);
+    const hasStocks = inv.some((i) => i.tipe === "saham" && i.kode);
+    if (hasCrypto) await loadCryptoPrices();
+    if (hasStocks) await loadStockPrices();
+  };
+
+  const handleCloseModal = () => {
+    setShowAdd(false);
+    setEditItem(null);
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-900">Investasi</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={loadCryptoPrices} disabled={cryptoLoading}>
+          <Button size="sm" variant="secondary" onClick={handleRefresh} disabled={cryptoLoading}>
             <RefreshCw size={14} className={cryptoLoading ? "animate-spin" : ""} /> Harga
           </Button>
           <Button size="sm" onClick={() => setShowAdd(true)}>
@@ -45,7 +67,6 @@ export default function InvestasiPage() {
         </div>
       </div>
 
-      {/* Summary */}
       <Card className="bg-gradient-to-br from-violet-100 to-indigo-100 border-violet-200/60">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 bg-violet-200 rounded-xl flex items-center justify-center">
@@ -58,7 +79,6 @@ export default function InvestasiPage() {
         </div>
       </Card>
 
-      {/* Filter */}
       {tipes.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           <button onClick={() => setFilter("all")}
@@ -74,7 +94,6 @@ export default function InvestasiPage() {
         </div>
       )}
 
-      {/* List */}
       {filtered.length === 0 ? (
         <Card>
           <p className="text-sm text-slate-400 text-center py-8">Belum ada investasi</p>
@@ -82,12 +101,21 @@ export default function InvestasiPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map((item) => (
-            <InvCard key={item.id} item={item} onDelete={() => delInv(item.id)} />
+            <InvCard
+              key={item.id}
+              item={item}
+              onDelete={() => delInv(item.id)}
+              onEdit={() => setEditItem(item)}
+            />
           ))}
         </div>
       )}
 
-      <AddInvestasiModal open={showAdd} onClose={() => setShowAdd(false)} />
+      <AddInvestasiModal
+        open={showAdd || !!editItem}
+        onClose={handleCloseModal}
+        editItem={editItem}
+      />
     </div>
   );
 }

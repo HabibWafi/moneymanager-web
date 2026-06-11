@@ -7,6 +7,8 @@ import PengeluaranPanel from "@/components/aruskas/PengeluaranPanel";
 import TransferPanel from "@/components/aruskas/TransferPanel";
 import AddIncomeExtraModal from "@/components/modals/AddIncomeExtraModal";
 import AddExpenseExtraModal from "@/components/modals/AddExpenseExtraModal";
+import AddPendapatanRutinModal from "@/components/modals/AddPendapatanRutinModal";
+import AddExpRutinModal from "@/components/modals/AddExpRutinModal";
 import TransferModal from "@/components/modals/TransferModal";
 
 export default function ArusKasPage() {
@@ -16,6 +18,8 @@ export default function ArusKasPage() {
 
   const [showAddInc, setShowAddInc] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);
+  const [showAddPR, setShowAddPR] = useState(false);
+  const [showAddER, setShowAddER] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
 
   return (
@@ -33,12 +37,14 @@ export default function ArusKasPage() {
         </select>
       </div>
 
-      <PendapatanPanel onAddExtra={() => setShowAddInc(true)} />
-      <PengeluaranPanel onAddExtra={() => setShowAddExp(true)} />
+      <PendapatanPanel onAddExtra={() => setShowAddInc(true)} onAddRutin={() => setShowAddPR(true)} />
+      <PengeluaranPanel onAddExtra={() => setShowAddExp(true)} onAddRutin={() => setShowAddER(true)} />
       <TransferPanel onTransfer={() => setShowTransfer(true)} />
 
       <AddIncomeExtraModal open={showAddInc} onClose={() => setShowAddInc(false)} />
       <AddExpenseExtraModal open={showAddExp} onClose={() => setShowAddExp(false)} />
+      <AddPendapatanRutinModal open={showAddPR} onClose={() => setShowAddPR(false)} />
+      <AddExpRutinModal open={showAddER} onClose={() => setShowAddER(false)} />
       <TransferModal open={showTransfer} onClose={() => setShowTransfer(false)} />
     </div>
   );

@@ -50,7 +50,9 @@ interface AppStore {
   delExpEx: (id: string) => void;
   saveHutang: (h: Hutang[]) => void;
   addHutang: (h: Hutang) => void;
+  updHutang: (id: string, partial: Partial<Hutang>) => void;
   delHutang: (id: string) => void;
+  bayarHutang: (hutangId: string, jumlah: number, bankId: string) => void;
   saveInv: (items: Investasi[]) => void;
   addInv: (item: Investasi) => void;
   updInv: (id: string, partial: Partial<Investasi>) => void;
@@ -232,10 +234,44 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await sb.from("debts").insert(hutangToDb(h, uid));
   },
 
+  updHutang: async (id, partial) => {
+    const items = get().hutang.map((x) => (x.id === id ? { ...x, ...partial } : x));
+    set({ hutang: items });
+    const uid = get().userId;
+    if (!uid) return;
+    const sb = getSupabase();
+    const updated = items.find((x) => x.id === id);
+    if (updated) {
+      await sb.from("debts").upsert(hutangToDb(updated, uid));
+    }
+  },
+
   delHutang: async (id) => {
     set({ hutang: get().hutang.filter((x) => x.id !== id) });
     const sb = getSupabase();
     await sb.from("debts").delete().eq("id", id);
+  },
+
+  bayarHutang: async (hutangId, jumlah, bankId) => {
+    const hutang = get().hutang.map((h) =>
+      h.id === hutangId ? { ...h, sudah: h.sudah + jumlah } : h
+    );
+    const banks = get().banks.map((b) =>
+      b.id === bankId ? { ...b, saldo: b.saldo - jumlah } : b
+    );
+    set({ hutang, banks });
+
+    const uid = get().userId;
+    if (!uid) return;
+    const sb = getSupabase();
+    const updatedH = hutang.find((h) => h.id === hutangId);
+    if (updatedH) {
+      await sb.from("debts").update({ sudah: updatedH.sudah }).eq("id", hutangId);
+    }
+    const updatedB = banks.find((b) => b.id === bankId);
+    if (updatedB) {
+      await sb.from("banks").update({ saldo: updatedB.saldo }).eq("id", bankId);
+    }
   },
 
   saveInv: async (items) => {

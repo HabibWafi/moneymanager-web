@@ -11,12 +11,12 @@ export default function IncomeExpensePie() {
   const incEx = useAppStore((s) => s.incEx);
   const expRutin = useAppStore((s) => s.expRutin);
   const expEx = useAppStore((s) => s.expEx);
+  const hutang = useAppStore((s) => s.hutang);
   const cuti = useAppStore((s) => s.cuti);
 
   const { y, m } = kym(selB);
   const hk = ghk(y, m, cuti);
 
-  // Income by category
   const incByCat: Record<string, number> = {};
   pendapatanRutin.filter((p) => p.aktif).forEach((p) => {
     const val = p.tipe === "tetap" ? p.jumlah : p.jumlah * hk;
@@ -26,13 +26,22 @@ export default function IncomeExpensePie() {
     incByCat[x.kat] = (incByCat[x.kat] || 0) + x.jumlah;
   });
 
-  // Expense by category
   const expByCat: Record<string, number> = {};
   expRutin.filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m)).forEach((e) => {
     expByCat[e.kat] = (expByCat[e.kat] || 0) + e.jumlah;
   });
   expEx.filter((x) => x.bk === selB).forEach((x) => {
     expByCat[x.kat] = (expByCat[x.kat] || 0) + x.jumlah;
+  });
+
+  hutang.filter((h) => {
+    if (h.htipe !== "cicilan") return false;
+    const start = h.mulaiY * 12 + h.mulaiM;
+    const end = h.selesaiY * 12 + h.selesaiM;
+    const cur = y * 12 + m;
+    return cur >= start && cur <= end && h.sudah < h.pokok;
+  }).forEach((h) => {
+    expByCat["Installment"] = (expByCat["Installment"] || 0) + h.cicilan;
   });
 
   const incData = Object.entries(incByCat).map(([name, value], i) => ({ name, value, color: gc(i) }));

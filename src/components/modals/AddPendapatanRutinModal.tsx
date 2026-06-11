@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { KI } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import NumericInput from "@/components/ui/NumericInput";
 
 export default function AddPendapatanRutinModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pendapatanRutin = useAppStore((s) => s.pendapatanRutin);
@@ -53,7 +54,7 @@ export default function AddPendapatanRutinModal({ open, onClose }: { open: boole
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
             {tipe === "tetap" ? "Jumlah/Bulan (Rp)" : "Jumlah/Hari (Rp)"}
           </label>
-          <input type="number" value={jumlah} onChange={(e) => setJumlah(e.target.value)} placeholder="0" className={inputCls} />
+          <NumericInput value={jumlah} onChange={setJumlah} className={inputCls} />
         </div>
         <Button fullWidth onClick={handleSubmit}>Simpan</Button>
       </div>

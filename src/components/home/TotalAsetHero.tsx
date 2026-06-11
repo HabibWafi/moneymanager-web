@@ -1,11 +1,12 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
 import { fmt } from "@/lib/helpers";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, CreditCard } from "lucide-react";
 
 export default function TotalAsetHero() {
   const banks = useAppStore((s) => s.banks);
   const inv = useAppStore((s) => s.inv);
+  const hutang = useAppStore((s) => s.hutang);
 
   const totalBank = banks.reduce((a, b) => a + b.saldo, 0);
 
@@ -29,7 +30,8 @@ export default function TotalAsetHero() {
     return a;
   }, 0);
 
-  const totalAset = totalBank + totalInv;
+  const totalHutang = hutang.reduce((a, h) => a + Math.max(h.pokok - h.sudah, 0), 0);
+  const netWorth = totalBank + totalInv - totalHutang;
   const gain = totalInv - totalInvBeli;
   const isPositive = gain >= 0;
 
@@ -39,23 +41,33 @@ export default function TotalAsetHero() {
         <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
           <Wallet size={20} />
         </div>
-        <p className="text-indigo-100 text-sm font-medium">Total Aset</p>
-      </div>
-      <p className="text-3xl md:text-4xl font-bold mb-6">{fmt(totalAset)}</p>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/10">
-          <p className="text-indigo-200 text-xs mb-1">Saldo Bank/Cash</p>
-          <p className="text-lg font-bold">{fmt(totalBank)}</p>
+        <div>
+          <p className="text-indigo-200 text-xs">Kekayaan Bersih</p>
+          <p className="text-2xl md:text-3xl font-bold">{fmt(netWorth)}</p>
         </div>
-        <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm border border-white/10">
-          <p className="text-indigo-200 text-xs mb-1">Portfolio Investasi</p>
-          <p className="text-lg font-bold">{fmt(totalInv)}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm border border-white/10">
+          <p className="text-indigo-200 text-[10px] mb-1">Saldo Bank/Cash</p>
+          <p className="text-sm font-bold">{fmt(totalBank)}</p>
+        </div>
+        <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm border border-white/10">
+          <p className="text-indigo-200 text-[10px] mb-1">Investasi</p>
+          <p className="text-sm font-bold">{fmt(totalInv)}</p>
           {totalInvBeli > 0 && (
-            <div className={`flex items-center gap-1 mt-1 text-xs ${isPositive ? "text-emerald-300" : "text-red-300"}`}>
-              {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+            <div className={`flex items-center gap-0.5 mt-0.5 text-[10px] ${isPositive ? "text-emerald-300" : "text-red-300"}`}>
+              {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
               <span>{isPositive ? "+" : ""}{fmt(gain)}</span>
             </div>
           )}
+        </div>
+        <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm border border-white/10">
+          <div className="flex items-center gap-1 mb-1">
+            <CreditCard size={10} className="text-red-300" />
+            <p className="text-red-200 text-[10px]">Total Hutang</p>
+          </div>
+          <p className="text-sm font-bold text-red-200">{fmt(totalHutang)}</p>
         </div>
       </div>
     </div>

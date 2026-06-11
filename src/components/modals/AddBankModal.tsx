@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { BANK_COLORS } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import NumericInput from "@/components/ui/NumericInput";
 
 export default function AddBankModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const banks = useAppStore((s) => s.banks);
@@ -34,7 +35,7 @@ export default function AddBankModal({ open, onClose }: { open: boolean; onClose
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">Saldo Awal (Rp)</label>
-          <input type="number" value={saldo} onChange={(e) => setSaldo(e.target.value)} placeholder="0" className={inputCls} />
+          <NumericInput value={saldo} onChange={setSaldo} className={inputCls} />
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">Tipe</label>

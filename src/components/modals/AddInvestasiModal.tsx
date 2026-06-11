@@ -1,115 +1,150 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
 import { INV_TIPE_LABEL, SAHAM_LIST, CRYPTO_LIST } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import NumericInput from "@/components/ui/NumericInput";
+import type { Investasi } from "@/lib/types";
 
 const TIPES = Object.entries(INV_TIPE_LABEL);
 
-export default function AddInvestasiModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const addInv = useAppStore((s) => s.addInv);
-  const [tipe, setTipe] = useState<string>("saham");
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  editItem?: Investasi | null;
+}
 
-  // Common fields
+export default function AddInvestasiModal({ open, onClose, editItem }: Props) {
+  const addInv = useAppStore((s) => s.addInv);
+  const updInv = useAppStore((s) => s.updInv);
+
+  const [tipe, setTipe] = useState<string>("saham");
   const [nama, setNama] = useState("");
   const [hargaBeli, setHargaBeli] = useState("");
   const [hargaSkrg, setHargaSkrg] = useState("");
-
-  // Saham
   const [kode, setKode] = useState(SAHAM_LIST[0]);
   const [lot, setLot] = useState("");
-
-  // Emas
   const [gram, setGram] = useState("");
-
-  // Kripto
   const [coinId, setCoinId] = useState(CRYPTO_LIST[0].id);
   const [jml, setJml] = useState("");
-
-  // Reksadana
   const [manajer, setManajer] = useState("");
   const [unit, setUnit] = useState("");
   const [nabBeli, setNabBeli] = useState("");
   const [nabSkrg, setNabSkrg] = useState("");
-
-  // Obligasi
   const [nominal, setNominal] = useState("");
   const [kupon, setKupon] = useState("");
   const [jatuhTempo, setJatuhTempo] = useState("");
-
-  // Deposito
   const [bank, setBank] = useState("");
   const [pokok, setPokok] = useState("");
   const [bunga, setBunga] = useState("");
   const [tanggalMulai, setTanggalMulai] = useState("");
   const [tanggalCair, setTanggalCair] = useState("");
 
+  useEffect(() => {
+    if (editItem) {
+      setTipe(editItem.tipe);
+      setNama(editItem.nama || "");
+      setHargaBeli(editItem.hargaBeli?.toString() || "");
+      setHargaSkrg(editItem.hargaSkrg?.toString() || "");
+      setKode(editItem.kode || SAHAM_LIST[0]);
+      setLot(editItem.lot?.toString() || "");
+      setGram(editItem.gram?.toString() || "");
+      setCoinId(editItem.coinId || CRYPTO_LIST[0].id);
+      setJml(editItem.jml?.toString() || "");
+      setManajer(editItem.manajer || "");
+      setUnit(editItem.unit?.toString() || "");
+      setNabBeli(editItem.nabBeli?.toString() || "");
+      setNabSkrg(editItem.nabSkrg?.toString() || "");
+      setNominal(editItem.nominal?.toString() || "");
+      setKupon(editItem.kupon?.toString() || "");
+      setJatuhTempo(editItem.jatuhTempo || "");
+      setBank(editItem.bank || "");
+      setPokok(editItem.pokok?.toString() || "");
+      setBunga(editItem.bunga?.toString() || "");
+      setTanggalMulai(editItem.tanggalMulai || "");
+      setTanggalCair(editItem.tanggalCair || "");
+    } else {
+      reset();
+    }
+  }, [editItem, open]);
+
   const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400";
 
   const handleSubmit = () => {
-    const base = { id: nanoid(), tipe: tipe as "saham" | "emas" | "kripto" | "obligasi" | "deposito" | "reksadana" };
+    const base = { tipe: tipe as Investasi["tipe"] };
 
+    let inv: Partial<Investasi> = {};
     switch (tipe) {
       case "saham":
         if (!lot || !hargaBeli) return;
-        addInv({ ...base, kode, lot: Number(lot), hargaBeli: Number(hargaBeli), hargaSkrg: Number(hargaSkrg) || Number(hargaBeli) });
+        inv = { ...base, kode, lot: Number(lot), hargaBeli: Number(hargaBeli), hargaSkrg: Number(hargaSkrg) || Number(hargaBeli) };
         break;
       case "emas":
         if (!gram || !hargaBeli) return;
-        addInv({ ...base, nama: nama || "Emas", gram: Number(gram), hargaBeli: Number(hargaBeli), hargaSkrg: Number(hargaSkrg) || Number(hargaBeli) });
+        inv = { ...base, nama: nama || "Emas", gram: Number(gram), hargaBeli: Number(hargaBeli), hargaSkrg: Number(hargaSkrg) || Number(hargaBeli) };
         break;
       case "kripto": {
         if (!jml || !hargaBeli) return;
         const crypto = CRYPTO_LIST.find((c) => c.id === coinId);
-        addInv({ ...base, coinId, sym: crypto?.sym, nama: crypto?.nama, jml: Number(jml), hargaBeli: Number(hargaBeli), hargaSkrg: Number(hargaSkrg) || Number(hargaBeli) });
+        inv = { ...base, coinId, sym: crypto?.sym, nama: crypto?.nama, jml: Number(jml), hargaBeli: Number(hargaBeli), hargaSkrg: Number(hargaSkrg) || Number(hargaBeli) };
         break;
       }
       case "reksadana":
         if (!unit || !nabBeli) return;
-        addInv({ ...base, nama: nama || "Reksadana", manajer, unit: Number(unit), nabBeli: Number(nabBeli), nabSkrg: Number(nabSkrg) || Number(nabBeli) });
+        inv = { ...base, nama: nama || "Reksadana", manajer, unit: Number(unit), nabBeli: Number(nabBeli), nabSkrg: Number(nabSkrg) || Number(nabBeli) };
         break;
       case "obligasi":
         if (!nominal) return;
-        addInv({ ...base, nama: nama || "Obligasi", nominal: Number(nominal), kupon: Number(kupon) || 0, jatuhTempo });
+        inv = { ...base, nama: nama || "Obligasi", nominal: Number(nominal), kupon: Number(kupon) || 0, jatuhTempo };
         break;
       case "deposito":
         if (!pokok) return;
-        addInv({ ...base, nama: nama || "Deposito", bank, pokok: Number(pokok), bunga: Number(bunga) || 0, tanggalMulai, tanggalCair });
+        inv = { ...base, nama: nama || "Deposito", bank, pokok: Number(pokok), bunga: Number(bunga) || 0, tanggalMulai, tanggalCair };
         break;
+    }
+
+    if (editItem) {
+      updInv(editItem.id, inv);
+    } else {
+      addInv({ id: nanoid(), ...inv } as Investasi);
     }
     reset();
     onClose();
   };
 
   const reset = () => {
+    setTipe("saham");
     setNama(""); setHargaBeli(""); setHargaSkrg(""); setLot(""); setGram(""); setJml("");
     setUnit(""); setNabBeli(""); setNabSkrg(""); setNominal(""); setKupon(""); setJatuhTempo("");
     setPokok(""); setBunga(""); setTanggalMulai(""); setTanggalCair(""); setBank(""); setManajer("");
   };
 
-  return (
-    <Modal open={open} onClose={onClose} title="Tambah Investasi">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1.5">Tipe Investasi</label>
-          <div className="grid grid-cols-3 gap-2">
-            {TIPES.map(([key, label]) => (
-              <button key={key} type="button" onClick={() => setTipe(key)}
-                className={`py-2 rounded-xl text-xs font-medium border-2 transition-all ${tipe === key ? "border-indigo-500 bg-indigo-50 text-indigo-600" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+  const isEdit = !!editItem;
 
-        {/* Saham */}
+  return (
+    <Modal open={open} onClose={onClose} title={isEdit ? "Edit Investasi" : "Tambah Investasi"}>
+      <div className="space-y-4">
+        {!isEdit && (
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">Tipe Investasi</label>
+            <div className="grid grid-cols-3 gap-2">
+              {TIPES.map(([key, label]) => (
+                <button key={key} type="button" onClick={() => setTipe(key)}
+                  className={`py-2 rounded-xl text-xs font-medium border-2 transition-all ${tipe === key ? "border-indigo-500 bg-indigo-50 text-indigo-600" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {tipe === "saham" && (
           <>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Kode Saham</label>
-              <select value={kode} onChange={(e) => setKode(e.target.value)} className={inputCls}>
+              <select value={kode} onChange={(e) => setKode(e.target.value)} className={inputCls} disabled={isEdit}>
                 {SAHAM_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -120,7 +155,6 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
           </>
         )}
 
-        {/* Emas */}
         {tipe === "emas" && (
           <>
             <div>
@@ -129,17 +163,16 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Gram</label>
-              <input type="number" value={gram} onChange={(e) => setGram(e.target.value)} placeholder="0" className={inputCls} />
+              <input type="number" value={gram} onChange={(e) => setGram(e.target.value)} placeholder="0" className={inputCls} step="any" />
             </div>
           </>
         )}
 
-        {/* Kripto */}
         {tipe === "kripto" && (
           <>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Koin</label>
-              <select value={coinId} onChange={(e) => setCoinId(e.target.value)} className={inputCls}>
+              <select value={coinId} onChange={(e) => setCoinId(e.target.value)} className={inputCls} disabled={isEdit}>
                 {CRYPTO_LIST.map((c) => <option key={c.id} value={c.id}>{c.sym} - {c.nama}</option>)}
               </select>
             </div>
@@ -150,7 +183,6 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
           </>
         )}
 
-        {/* Reksadana */}
         {tipe === "reksadana" && (
           <>
             <div>
@@ -168,17 +200,16 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1.5">NAB Beli</label>
-                <input type="number" value={nabBeli} onChange={(e) => setNabBeli(e.target.value)} placeholder="0" className={inputCls} />
+                <NumericInput value={nabBeli} onChange={setNabBeli} className={inputCls} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1.5">NAB Sekarang</label>
-                <input type="number" value={nabSkrg} onChange={(e) => setNabSkrg(e.target.value)} placeholder="0" className={inputCls} />
+                <NumericInput value={nabSkrg} onChange={setNabSkrg} className={inputCls} />
               </div>
             </div>
           </>
         )}
 
-        {/* Obligasi */}
         {tipe === "obligasi" && (
           <>
             <div>
@@ -187,7 +218,7 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Nominal (Rp)</label>
-              <input type="number" value={nominal} onChange={(e) => setNominal(e.target.value)} placeholder="0" className={inputCls} />
+              <NumericInput value={nominal} onChange={setNominal} className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Kupon (%/tahun)</label>
@@ -200,7 +231,6 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
           </>
         )}
 
-        {/* Deposito */}
         {tipe === "deposito" && (
           <>
             <div>
@@ -209,7 +239,7 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Pokok (Rp)</label>
-              <input type="number" value={pokok} onChange={(e) => setPokok(e.target.value)} placeholder="0" className={inputCls} />
+              <NumericInput value={pokok} onChange={setPokok} className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Bunga (%/tahun)</label>
@@ -228,21 +258,20 @@ export default function AddInvestasiModal({ open, onClose }: { open: boolean; on
           </>
         )}
 
-        {/* Harga Beli / Harga Sekarang (saham, emas, kripto) */}
         {["saham", "emas", "kripto"].includes(tipe) && (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Harga Beli</label>
-              <input type="number" value={hargaBeli} onChange={(e) => setHargaBeli(e.target.value)} placeholder="0" className={inputCls} />
+              <NumericInput value={hargaBeli} onChange={setHargaBeli} className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">Harga Sekarang</label>
-              <input type="number" value={hargaSkrg} onChange={(e) => setHargaSkrg(e.target.value)} placeholder="0" className={inputCls} />
+              <NumericInput value={hargaSkrg} onChange={setHargaSkrg} className={inputCls} />
             </div>
           </div>
         )}
 
-        <Button fullWidth onClick={handleSubmit}>Simpan</Button>
+        <Button fullWidth onClick={handleSubmit}>{isEdit ? "Simpan Perubahan" : "Simpan"}</Button>
       </div>
     </Modal>
   );
