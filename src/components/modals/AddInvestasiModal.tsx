@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { INV_TIPE_LABEL, SAHAM_LIST, CRYPTO_LIST } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -19,6 +20,7 @@ interface Props {
 export default function AddInvestasiModal({ open, onClose, editItem }: Props) {
   const addInv = useAppStore((s) => s.addInv);
   const updInv = useAppStore((s) => s.updInv);
+  const toast = useToast();
 
   const [tipe, setTipe] = useState<string>("saham");
   const [nama, setNama] = useState("");
@@ -107,8 +109,10 @@ export default function AddInvestasiModal({ open, onClose, editItem }: Props) {
 
     if (editItem) {
       updInv(editItem.id, inv);
+      toast.add("Investasi berhasil diperbarui", "success");
     } else {
       addInv({ id: nanoid(), ...inv } as Investasi);
+      toast.add("Investasi berhasil ditambahkan", "success");
     }
     reset();
     onClose();

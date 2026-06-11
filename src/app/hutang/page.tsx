@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { fmt } from "@/lib/helpers";
 import type { Hutang } from "@/lib/types";
 import HutangCard from "@/components/hutang/HutangCard";
@@ -13,6 +14,7 @@ import { Plus, CreditCard } from "lucide-react";
 export default function HutangPage() {
   const hutang = useAppStore((s) => s.hutang);
   const delHutang = useAppStore((s) => s.delHutang);
+  const toast = useToast();
   const [showAdd, setShowAdd] = useState(false);
   const [bayarTarget, setBayarTarget] = useState<Hutang | null>(null);
 
@@ -67,7 +69,7 @@ export default function HutangPage() {
             <HutangCard
               key={h.id}
               item={h}
-              onDelete={() => delHutang(h.id)}
+              onDelete={() => { delHutang(h.id); toast.add("Hutang dihapus", "success"); }}
               onBayar={() => setBayarTarget(h)}
             />
           ))}

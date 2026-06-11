@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { fmt } from "@/lib/helpers";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -15,6 +16,8 @@ export default function PengaturanPage() {
   const exportData = useAppStore((s) => s.exportData);
   const importData = useAppStore((s) => s.importData);
 
+  const toast = useToast();
+
   const [showAddBank, setShowAddBank] = useState(false);
   const [adjustBank, setAdjustBank] = useState<Bank | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -28,6 +31,7 @@ export default function PengaturanPage() {
     a.download = `moneymanager-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.add("Data berhasil diexport!", "success");
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,16 +42,19 @@ export default function PengaturanPage() {
       try {
         const data = JSON.parse(ev.target?.result as string);
         importData(data);
-        alert("Data berhasil diimpor!");
+        toast.add("Data berhasil diimpor!", "success");
       } catch {
-        alert("File tidak valid!");
+        toast.add("File tidak valid!", "error");
       }
     };
     reader.readAsText(file);
     e.target.value = "";
   };
 
-  const deleteBank = (id: string) => saveBanks(banks.filter((b) => b.id !== id));
+  const deleteBank = (id: string) => {
+    saveBanks(banks.filter((b) => b.id !== id));
+    toast.add("Rekening dihapus", "success");
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { fmt } from "@/lib/helpers";
 import { INV_TIPE_LABEL } from "@/lib/constants";
 import type { Investasi } from "@/lib/types";
@@ -13,6 +14,7 @@ import { Plus, RefreshCw, TrendingUp } from "lucide-react";
 export default function InvestasiPage() {
   const inv = useAppStore((s) => s.inv);
   const delInv = useAppStore((s) => s.delInv);
+  const toast = useToast();
   const loadCryptoPrices = useAppStore((s) => s.loadCryptoPrices);
   const loadStockPrices = useAppStore((s) => s.loadStockPrices);
   const cryptoLoading = useAppStore((s) => s.cryptoLoading);
@@ -104,7 +106,7 @@ export default function InvestasiPage() {
             <InvCard
               key={item.id}
               item={item}
-              onDelete={() => delInv(item.id)}
+              onDelete={() => { delInv(item.id); toast.add("Investasi dihapus", "success"); }}
               onEdit={() => setEditItem(item)}
             />
           ))}

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { BANK_COLORS } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import NumericInput from "@/components/ui/NumericInput";
 export default function AddBankModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const banks = useAppStore((s) => s.banks);
   const saveBanks = useAppStore((s) => s.saveBanks);
+  const toast = useToast();
 
   const [nama, setNama] = useState("");
   const [saldo, setSaldo] = useState("");
@@ -19,6 +21,7 @@ export default function AddBankModal({ open, onClose }: { open: boolean; onClose
   const handleSubmit = () => {
     if (!nama) return;
     saveBanks([...banks, { id: nanoid(), nama, saldo: Number(saldo) || 0, warna, tipe }]);
+    toast.add("Rekening berhasil ditambahkan", "success");
     setNama("");
     setSaldo("");
     onClose();

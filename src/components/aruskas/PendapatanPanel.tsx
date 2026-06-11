@@ -1,5 +1,6 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { fmt, ghk, kym } from "@/lib/helpers";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -18,6 +19,7 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
   const incEx = useAppStore((s) => s.incEx);
   const delIncEx = useAppStore((s) => s.delIncEx);
   const cuti = useAppStore((s) => s.cuti);
+  const toast = useToast();
 
   const { y, m } = kym(selB);
   const hk = ghk(y, m, cuti);
@@ -31,8 +33,15 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
   }, 0);
   const totalExtra = extraItems.reduce((a, x) => a + x.jumlah, 0);
 
-  const togglePR = (id: string) => savePR(pendapatanRutin.map((p) => p.id === id ? { ...p, aktif: !p.aktif } : p));
-  const deletePR = (id: string) => savePR(pendapatanRutin.filter((p) => p.id !== id));
+  const togglePR = (id: string) => {
+    const item = pendapatanRutin.find((p) => p.id === id);
+    savePR(pendapatanRutin.map((p) => p.id === id ? { ...p, aktif: !p.aktif } : p));
+    toast.add(item?.aktif ? "Pendapatan dinonaktifkan" : "Pendapatan diaktifkan", "info");
+  };
+  const deletePR = (id: string) => {
+    savePR(pendapatanRutin.filter((p) => p.id !== id));
+    toast.add("Pendapatan rutin dihapus", "success");
+  };
 
   return (
     <Card>
@@ -95,7 +104,7 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-emerald-600">+{fmt(x.jumlah)}</span>
-                <button onClick={() => delIncEx(x.id)} className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
+                <button onClick={() => { delIncEx(x.id); toast.add("Pemasukan extra dihapus", "success"); }} className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
                   <Trash2 size={14} />
                 </button>
               </div>

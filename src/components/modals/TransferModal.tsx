@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import NumericInput from "@/components/ui/NumericInput";
@@ -9,6 +10,7 @@ import NumericInput from "@/components/ui/NumericInput";
 export default function TransferModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const banks = useAppStore((s) => s.banks);
   const doBankTransfer = useAppStore((s) => s.doBankTransfer);
+  const toast = useToast();
 
   const [dari, setDari] = useState(banks[0]?.id || "");
   const [ke, setKe] = useState(banks[1]?.id || "");
@@ -18,6 +20,7 @@ export default function TransferModal({ open, onClose }: { open: boolean; onClos
   const handleSubmit = () => {
     if (!dari || !ke || dari === ke || !jumlah || Number(jumlah) <= 0) return;
     doBankTransfer({ id: nanoid(), dari, ke, jumlah: Number(jumlah), ket, tgl: new Date().toISOString() });
+    toast.add("Transfer berhasil", "success");
     setJumlah("");
     setKet("");
     onClose();

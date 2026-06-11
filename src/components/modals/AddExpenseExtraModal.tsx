@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { KE } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -11,6 +12,7 @@ export default function AddExpenseExtraModal({ open, onClose }: { open: boolean;
   const selB = useAppStore((s) => s.selB);
   const banks = useAppStore((s) => s.banks);
   const addExpEx = useAppStore((s) => s.addExpEx);
+  const toast = useToast();
 
   const [kat, setKat] = useState(KE[0]);
   const [desc, setDesc] = useState("");
@@ -27,6 +29,7 @@ export default function AddExpenseExtraModal({ open, onClose }: { open: boolean;
       );
       store.saveBanks(updBanks);
     }
+    toast.add("Pengeluaran berhasil ditambahkan", "success");
     setDesc("");
     setJumlah("");
     onClose();

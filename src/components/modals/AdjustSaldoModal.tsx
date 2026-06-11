@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { fmt } from "@/lib/helpers";
 import type { Bank } from "@/lib/types";
 import Modal from "@/components/ui/Modal";
@@ -16,6 +17,7 @@ interface Props {
 export default function AdjustSaldoModal({ open, onClose, bank }: Props) {
   const saveBanks = useAppStore((s) => s.saveBanks);
   const banks = useAppStore((s) => s.banks);
+  const toast = useToast();
 
   const [saldo, setSaldo] = useState("");
 
@@ -32,6 +34,7 @@ export default function AdjustSaldoModal({ open, onClose, bank }: Props) {
       b.id === bank.id ? { ...b, saldo: newSaldo } : b
     );
     saveBanks(updatedBanks);
+    toast.add("Saldo berhasil disesuaikan", "success");
     onClose();
   };
 

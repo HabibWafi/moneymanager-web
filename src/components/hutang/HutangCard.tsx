@@ -4,7 +4,7 @@ import { fmt } from "@/lib/helpers";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { Trash2, Banknote } from "lucide-react";
+import { Trash2, Banknote, CalendarClock } from "lucide-react";
 
 interface Props {
   item: Hutang;
@@ -12,21 +12,38 @@ interface Props {
   onBayar: () => void;
 }
 
+function getDueStatus(tglBayar: number): { label: string; color: string } {
+  const today = new Date().getDate();
+  if (today < tglBayar) return { label: "Mendatang", color: "cyan" };
+  if (today === tglBayar) return { label: "Jatuh Tempo Hari Ini", color: "amber" };
+  return { label: "Terlambat", color: "red" };
+}
+
 export default function HutangCard({ item, onDelete, onBayar }: Props) {
   const pct = item.pokok > 0 ? Math.min((item.sudah / item.pokok) * 100, 100) : 0;
   const sisa = item.pokok - item.sudah;
   const lunas = sisa <= 0;
+
+  const now = new Date();
+  const curMonth = now.getFullYear() * 12 + (now.getMonth() + 1);
+  const start = item.mulaiY * 12 + item.mulaiM;
+  const end = item.selesaiY * 12 + item.selesaiM;
+  const isActiveMonth = curMonth >= start && curMonth <= end;
+
+  const showDueStatus = item.htipe === "cicilan" && item.tglBayar && !lunas && isActiveMonth;
+  const dueStatus = showDueStatus ? getDueStatus(item.tglBayar!) : null;
 
   return (
     <Card className="hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-700">{item.nama}</h4>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <Badge color={item.htipe === "cicilan" ? "amber" : "red"}>
               {item.htipe === "cicilan" ? "Cicilan" : "Hutang"}
             </Badge>
             {lunas && <Badge color="emerald">Lunas</Badge>}
+            {dueStatus && <Badge color={dueStatus.color}>{dueStatus.label}</Badge>}
           </div>
         </div>
         <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
@@ -51,6 +68,12 @@ export default function HutangCard({ item, onDelete, onBayar }: Props) {
           <div className="flex justify-between text-xs">
             <span className="text-slate-400">Cicilan/Bulan</span>
             <span className="font-semibold text-indigo-600">{fmt(item.cicilan)}</span>
+          </div>
+        )}
+        {item.htipe === "cicilan" && item.tglBayar && (
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-400 flex items-center gap-1"><CalendarClock size={12} /> Tanggal Bayar</span>
+            <span className="font-semibold text-slate-600">Tanggal {item.tglBayar}</span>
           </div>
         )}
       </div>
