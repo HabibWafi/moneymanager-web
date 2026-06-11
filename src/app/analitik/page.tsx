@@ -3,6 +3,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { mOpts, fmt, kym, ghk, isExpRutinActive } from "@/lib/helpers";
 import PieExpense from "@/components/analitik/PieExpense";
 import BarMonthly from "@/components/analitik/BarMonthly";
+import BudgetSection from "@/components/budget/BudgetSection";
 import Card from "@/components/ui/Card";
 
 export default function AnalitikPage() {
@@ -53,6 +54,7 @@ export default function AnalitikPage() {
         </Card>
       </div>
 
+      <BudgetSection />
       <PieExpense />
       <BarMonthly />
     </div>

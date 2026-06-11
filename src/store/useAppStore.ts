@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, AppData } from "@/lib/types";
+import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, AppData } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { fetchCryptoPrices, fetchStockPrices } from "@/lib/api";
 import { ymk, currentYM } from "@/lib/helpers";
@@ -13,6 +13,7 @@ import {
   dbToHutang, hutangToDb,
   dbToInvestasi, investasiToDb,
   dbToHoliday, holidayToDb,
+  dbToBudget, budgetToDb,
 } from "@/lib/supabase/mappers";
 
 function getSupabase() {
@@ -30,6 +31,7 @@ interface AppStore {
   expEx: ExpExtra[];
   hutang: Hutang[];
   inv: Investasi[];
+  budgets: Budget[];
   cuti: Record<string, number[]>;
   selB: string;
   cryptoLoading: boolean;
@@ -57,6 +59,10 @@ interface AppStore {
   addInv: (item: Investasi) => void;
   updInv: (id: string, partial: Partial<Investasi>) => void;
   delInv: (id: string) => void;
+  saveBudgets: (items: Budget[]) => void;
+  addBudget: (item: Budget) => void;
+  updBudget: (id: string, partial: Partial<Budget>) => void;
+  delBudget: (id: string) => void;
   saveCuti: (c: Record<string, number[]>) => void;
 
   doBankTransfer: (t: BankTransfer) => void;
@@ -78,6 +84,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   expEx: [],
   hutang: [],
   inv: [],
+  budgets: [],
   cuti: {},
   selB: (() => { const { y, m } = currentYM(); return ymk(y, m); })(),
   cryptoLoading: false,
@@ -99,6 +106,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         { data: debts, error: e7 },
         { data: investments, error: e8 },
         { data: holidays, error: e9 },
+        { data: budgetsData, error: e10 },
       ] = await Promise.all([
         sb.from("banks").select("*"),
         sb.from("bank_transfers").select("*"),
@@ -109,9 +117,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         sb.from("debts").select("*"),
         sb.from("investments").select("*"),
         sb.from("holidays").select("*"),
+        sb.from("budgets").select("*"),
       ]);
 
-      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9].filter(Boolean);
+      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10].filter(Boolean);
       if (errors.length) {
         console.error("Supabase load errors:", errors);
       }
@@ -131,6 +140,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         expEx: (expenseExtra ?? []).map(dbToExpExtra),
         hutang: (debts ?? []).map(dbToHutang),
         inv: (investments ?? []).map(dbToInvestasi),
+        budgets: (budgetsData ?? []).map(dbToBudget),
         cuti: cutiMap,
         userId: uid,
       });
@@ -310,6 +320,42 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await sb.from("investments").delete().eq("id", id);
   },
 
+  saveBudgets: async (items) => {
+    set({ budgets: items });
+    const uid = get().userId;
+    if (!uid) return;
+    const sb = getSupabase();
+    if (items.length) {
+      await sb.from("budgets").upsert(items.map((b) => budgetToDb(b, uid)));
+    }
+  },
+
+  addBudget: async (item) => {
+    set({ budgets: [...get().budgets, item] });
+    const uid = get().userId;
+    if (!uid) return;
+    const sb = getSupabase();
+    await sb.from("budgets").insert(budgetToDb(item, uid));
+  },
+
+  updBudget: async (id, partial) => {
+    const items = get().budgets.map((x) => (x.id === id ? { ...x, ...partial } : x));
+    set({ budgets: items });
+    const uid = get().userId;
+    if (!uid) return;
+    const sb = getSupabase();
+    const updated = items.find((x) => x.id === id);
+    if (updated) {
+      await sb.from("budgets").upsert(budgetToDb(updated, uid));
+    }
+  },
+
+  delBudget: async (id) => {
+    set({ budgets: get().budgets.filter((x) => x.id !== id) });
+    const sb = getSupabase();
+    await sb.from("budgets").delete().eq("id", id);
+  },
+
   saveCuti: async (c) => {
     set({ cuti: c });
     const uid = get().userId;
@@ -425,6 +471,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       expEx: s.expEx,
       hutang: s.hutang,
       inv: s.inv,
+      budgets: s.budgets,
       cuti: s.cuti,
     };
   },
@@ -445,6 +492,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sb.from("expense_extra").delete().neq("id", ""),
       sb.from("debts").delete().neq("id", ""),
       sb.from("investments").delete().neq("id", ""),
+      sb.from("budgets").delete().neq("id", ""),
       sb.from("holidays").delete().neq("id", "0"),
     ]);
 
@@ -457,6 +505,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (data.expEx.length) await sb.from("expense_extra").insert(data.expEx.map((x) => expExtraToDb(x, uid)));
     if (data.hutang.length) await sb.from("debts").insert(data.hutang.map((h) => hutangToDb(h, uid)));
     if (data.inv.length) await sb.from("investments").insert(data.inv.map((i) => investasiToDb(i, uid)));
+    if (data.budgets?.length) await sb.from("budgets").insert(data.budgets.map((b) => budgetToDb(b, uid)));
 
     for (const [bk, days] of Object.entries(data.cuti)) {
       await sb.from("holidays").upsert(holidayToDb(bk, days, uid), { onConflict: "user_id,bk" });

@@ -2,13 +2,16 @@
 import { useState } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import NumericInput from "@/components/ui/NumericInput";
+import MonthYearPicker from "@/components/ui/MonthYearPicker";
 
 export default function AddHutangModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const addHutang = useAppStore((s) => s.addHutang);
   const banks = useAppStore((s) => s.banks);
+  const toast = useToast();
 
   const [nama, setNama] = useState("");
   const [htipe, setHtipe] = useState<"cicilan" | "hutang">("cicilan");
@@ -16,6 +19,7 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
   const [cicilan, setCicilan] = useState("");
   const [sudah, setSudah] = useState("");
   const [bankId, setBankId] = useState(banks[0]?.id || "");
+  const [tglBayar, setTglBayar] = useState(1);
   const [mulaiY, setMulaiY] = useState(new Date().getFullYear());
   const [mulaiM, setMulaiM] = useState(new Date().getMonth() + 1);
   const [selesaiY, setSelesaiY] = useState(new Date().getFullYear() + 1);
@@ -26,8 +30,11 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
     addHutang({
       id: nanoid(), nama, htipe,
       pokok: Number(pokok), cicilan: Number(cicilan) || 0, sudah: Number(sudah) || 0,
-      mulaiY, mulaiM, selesaiY, selesaiM, bankId: bankId || undefined,
+      mulaiY, mulaiM, selesaiY, selesaiM,
+      bankId: bankId || undefined,
+      tglBayar: htipe === "cicilan" ? tglBayar : undefined,
     });
+    toast.add("Hutang berhasil ditambahkan", "success");
     setNama("");
     setPokok("");
     setCicilan("");
@@ -36,6 +43,7 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
   };
 
   const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400";
+  const days = Array.from({ length: 28 }, (_, i) => i + 1);
 
   return (
     <Modal open={open} onClose={onClose} title="Tambah Hutang / Cicilan">
@@ -63,10 +71,20 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
           <NumericInput value={pokok} onChange={setPokok} className={inputCls} />
         </div>
         {htipe === "cicilan" && (
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Cicilan/Bulan (Rp)</label>
-            <NumericInput value={cicilan} onChange={setCicilan} className={inputCls} />
-          </div>
+          <>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">Cicilan/Bulan (Rp)</label>
+              <NumericInput value={cicilan} onChange={setCicilan} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">Tanggal Bayar Tiap Bulan</label>
+              <select value={tglBayar} onChange={(e) => setTglBayar(Number(e.target.value))} className={inputCls}>
+                {days.map((d) => (
+                  <option key={d} value={d}>Tanggal {d}</option>
+                ))}
+              </select>
+            </div>
+          </>
         )}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">Sudah Dibayar (Rp)</label>
@@ -82,20 +100,20 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Mulai (Bulan/Tahun)</label>
-            <div className="flex gap-2">
-              <input type="number" value={mulaiM} onChange={(e) => setMulaiM(Number(e.target.value))} min={1} max={12} className={inputCls} />
-              <input type="number" value={mulaiY} onChange={(e) => setMulaiY(Number(e.target.value))} className={inputCls} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Selesai (Bulan/Tahun)</label>
-            <div className="flex gap-2">
-              <input type="number" value={selesaiM} onChange={(e) => setSelesaiM(Number(e.target.value))} min={1} max={12} className={inputCls} />
-              <input type="number" value={selesaiY} onChange={(e) => setSelesaiY(Number(e.target.value))} className={inputCls} />
-            </div>
-          </div>
+          <MonthYearPicker
+            label="Mulai"
+            year={mulaiY}
+            month={mulaiM}
+            onChangeYear={(v) => setMulaiY(v ?? new Date().getFullYear())}
+            onChangeMonth={(v) => setMulaiM(v ?? 1)}
+          />
+          <MonthYearPicker
+            label="Selesai"
+            year={selesaiY}
+            month={selesaiM}
+            onChangeYear={(v) => setSelesaiY(v ?? new Date().getFullYear())}
+            onChangeMonth={(v) => setSelesaiM(v ?? 1)}
+          />
         </div>
         <Button fullWidth onClick={handleSubmit}>Simpan</Button>
       </div>

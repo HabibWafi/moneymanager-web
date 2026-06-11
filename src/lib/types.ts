@@ -57,6 +57,13 @@ export interface Hutang {
   selesaiY: number;
   selesaiM: number;
   bankId?: string;
+  tglBayar?: number;
+}
+
+export interface Budget {
+  id: string;
+  kat: string;
+  jumlah: number;
 }
 
 export interface Investasi {
@@ -105,4 +112,5 @@ export interface AppData {
   hutang: Hutang[];
   inv: Investasi[];
   cuti: Record<string, number[]>;
+  budgets: Budget[];
 }

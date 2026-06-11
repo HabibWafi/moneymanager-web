@@ -7,6 +7,7 @@ import type {
   ExpExtra,
   Hutang,
   Investasi,
+  Budget,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -192,6 +193,7 @@ export function dbToHutang(row: any): Hutang {
     selesaiY: row.selesai_y,
     selesaiM: row.selesai_m,
     bankId: row.bank_id || undefined,
+    tglBayar: row.tgl_bayar != null ? Number(row.tgl_bayar) : undefined,
   };
 }
 
@@ -209,6 +211,7 @@ export function hutangToDb(h: Hutang, userId: string) {
     selesai_y: h.selesaiY,
     selesai_m: h.selesaiM,
     bank_id: h.bankId || null,
+    tgl_bayar: h.tglBayar || null,
   };
 }
 
@@ -291,5 +294,26 @@ export function holidayToDb(bk: string, days: number[], userId: string) {
     user_id: userId,
     bk,
     days,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Budget
+// ---------------------------------------------------------------------------
+
+export function dbToBudget(row: any): Budget {
+  return {
+    id: row.id,
+    kat: row.kat,
+    jumlah: Number(row.jumlah),
+  };
+}
+
+export function budgetToDb(b: Budget, userId: string) {
+  return {
+    id: b.id,
+    user_id: userId,
+    kat: b.kat,
+    jumlah: b.jumlah,
   };
 }

@@ -2,14 +2,17 @@
 import { useState } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { KE } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import NumericInput from "@/components/ui/NumericInput";
+import MonthYearPicker from "@/components/ui/MonthYearPicker";
 
 export default function AddExpRutinModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const expRutin = useAppStore((s) => s.expRutin);
   const saveER = useAppStore((s) => s.saveER);
+  const toast = useToast();
 
   const [nama, setNama] = useState("");
   const [jumlah, setJumlah] = useState("");
@@ -26,6 +29,7 @@ export default function AddExpRutinModal({ open, onClose }: { open: boolean; onC
       id: nanoid(), nama, jumlah: Number(jumlah), tipe, kat,
       mulaiY, mulaiM, selesaiY, selesaiM,
     }]);
+    toast.add("Pengeluaran rutin berhasil ditambahkan", "success");
     setNama("");
     setJumlah("");
     onClose();
@@ -62,20 +66,21 @@ export default function AddExpRutinModal({ open, onClose }: { open: boolean; onC
           <NumericInput value={jumlah} onChange={setJumlah} className={inputCls} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Mulai (B/T)</label>
-            <div className="flex gap-2">
-              <input type="number" value={mulaiM} onChange={(e) => setMulaiM(Number(e.target.value))} min={1} max={12} className={inputCls} />
-              <input type="number" value={mulaiY} onChange={(e) => setMulaiY(Number(e.target.value))} className={inputCls} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Selesai (opsional)</label>
-            <div className="flex gap-2">
-              <input type="number" value={selesaiM ?? ""} onChange={(e) => setSelesaiM(e.target.value ? Number(e.target.value) : undefined)} min={1} max={12} placeholder="B" className={inputCls} />
-              <input type="number" value={selesaiY ?? ""} onChange={(e) => setSelesaiY(e.target.value ? Number(e.target.value) : undefined)} placeholder="T" className={inputCls} />
-            </div>
-          </div>
+          <MonthYearPicker
+            label="Mulai"
+            year={mulaiY}
+            month={mulaiM}
+            onChangeYear={(v) => setMulaiY(v ?? new Date().getFullYear())}
+            onChangeMonth={(v) => setMulaiM(v ?? 1)}
+          />
+          <MonthYearPicker
+            label="Selesai (opsional)"
+            year={selesaiY}
+            month={selesaiM}
+            onChangeYear={(v) => setSelesaiY(v)}
+            onChangeMonth={(v) => setSelesaiM(v)}
+            optional
+          />
         </div>
         <Button fullWidth onClick={handleSubmit}>Simpan</Button>
       </div>

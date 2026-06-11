@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { KI } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import NumericInput from "@/components/ui/NumericInput";
 export default function AddPendapatanRutinModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pendapatanRutin = useAppStore((s) => s.pendapatanRutin);
   const savePR = useAppStore((s) => s.savePR);
+  const toast = useToast();
 
   const [nama, setNama] = useState("");
   const [jumlah, setJumlah] = useState("");
@@ -19,6 +21,7 @@ export default function AddPendapatanRutinModal({ open, onClose }: { open: boole
   const handleSubmit = () => {
     if (!nama || !jumlah || Number(jumlah) <= 0) return;
     savePR([...pendapatanRutin, { id: nanoid(), nama, jumlah: Number(jumlah), tipe, kat, aktif: true }]);
+    toast.add("Pendapatan rutin berhasil ditambahkan", "success");
     setNama("");
     setJumlah("");
     onClose();

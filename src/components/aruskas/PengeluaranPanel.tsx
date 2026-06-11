@@ -1,5 +1,6 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import { fmt, kym, isExpRutinActive } from "@/lib/helpers";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -18,6 +19,7 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
   const expEx = useAppStore((s) => s.expEx);
   const delExpEx = useAppStore((s) => s.delExpEx);
   const hutang = useAppStore((s) => s.hutang);
+  const toast = useToast();
 
   const { y, m } = kym(selB);
 
@@ -36,7 +38,10 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
   const totalExtra = extraItems.reduce((a, x) => a + x.jumlah, 0);
   const totalCicilan = cicilanItems.reduce((a, h) => a + h.cicilan, 0);
 
-  const deleteER = (id: string) => saveER(expRutin.filter((e) => e.id !== id));
+  const deleteER = (id: string) => {
+    saveER(expRutin.filter((e) => e.id !== id));
+    toast.add("Pengeluaran rutin dihapus", "success");
+  };
 
   return (
     <Card>
@@ -110,7 +115,7 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-red-500">-{fmt(x.jumlah)}</span>
-                <button onClick={() => delExpEx(x.id)} className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
+                <button onClick={() => { delExpEx(x.id); toast.add("Pengeluaran extra dihapus", "success"); }} className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
                   <Trash2 size={14} />
                 </button>
               </div>

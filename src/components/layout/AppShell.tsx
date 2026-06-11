@@ -2,6 +2,7 @@
 import { ReactNode, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import BottomNav from "./BottomNav";
+import { ToastContainer } from "@/components/ui/Toast";
 import { useAppStore } from "@/store/useAppStore";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -69,6 +70,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <BottomNav />
+      <ToastContainer />
     </div>
   );
 }
