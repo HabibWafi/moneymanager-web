@@ -4,15 +4,18 @@ import { nanoid } from "nanoid";
 import { useAppStore } from "@/store/useAppStore";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import NumericInput from "@/components/ui/NumericInput";
 
 export default function AddHutangModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const addHutang = useAppStore((s) => s.addHutang);
+  const banks = useAppStore((s) => s.banks);
 
   const [nama, setNama] = useState("");
   const [htipe, setHtipe] = useState<"cicilan" | "hutang">("cicilan");
   const [pokok, setPokok] = useState("");
   const [cicilan, setCicilan] = useState("");
   const [sudah, setSudah] = useState("");
+  const [bankId, setBankId] = useState(banks[0]?.id || "");
   const [mulaiY, setMulaiY] = useState(new Date().getFullYear());
   const [mulaiM, setMulaiM] = useState(new Date().getMonth() + 1);
   const [selesaiY, setSelesaiY] = useState(new Date().getFullYear() + 1);
@@ -23,7 +26,7 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
     addHutang({
       id: nanoid(), nama, htipe,
       pokok: Number(pokok), cicilan: Number(cicilan) || 0, sudah: Number(sudah) || 0,
-      mulaiY, mulaiM, selesaiY, selesaiM,
+      mulaiY, mulaiM, selesaiY, selesaiM, bankId: bankId || undefined,
     });
     setNama("");
     setPokok("");
@@ -51,19 +54,33 @@ export default function AddHutangModal({ open, onClose }: { open: boolean; onClo
               </button>
             ))}
           </div>
+          <p className="text-xs text-slate-400 mt-1.5">
+            {htipe === "cicilan" ? "Otomatis masuk pengeluaran tiap bulan" : "Bayar manual kapan saja"}
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">Total Pokok (Rp)</label>
-          <input type="number" value={pokok} onChange={(e) => setPokok(e.target.value)} placeholder="0" className={inputCls} />
+          <NumericInput value={pokok} onChange={setPokok} className={inputCls} />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1.5">Cicilan/Bulan (Rp)</label>
-          <input type="number" value={cicilan} onChange={(e) => setCicilan(e.target.value)} placeholder="0" className={inputCls} />
-        </div>
+        {htipe === "cicilan" && (
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">Cicilan/Bulan (Rp)</label>
+            <NumericInput value={cicilan} onChange={setCicilan} className={inputCls} />
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">Sudah Dibayar (Rp)</label>
-          <input type="number" value={sudah} onChange={(e) => setSudah(e.target.value)} placeholder="0" className={inputCls} />
+          <NumericInput value={sudah} onChange={setSudah} className={inputCls} />
         </div>
+        {banks.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">Rekening Pembayaran</label>
+            <select value={bankId} onChange={(e) => setBankId(e.target.value)} className={inputCls}>
+              <option value="">— Pilih Rekening —</option>
+              {banks.map((b) => <option key={b.id} value={b.id}>{b.nama}</option>)}
+            </select>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1.5">Mulai (Bulan/Tahun)</label>

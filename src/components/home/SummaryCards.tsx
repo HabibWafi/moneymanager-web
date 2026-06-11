@@ -10,6 +10,7 @@ export default function SummaryCards() {
   const incEx = useAppStore((s) => s.incEx);
   const expRutin = useAppStore((s) => s.expRutin);
   const expEx = useAppStore((s) => s.expEx);
+  const hutang = useAppStore((s) => s.hutang);
   const cuti = useAppStore((s) => s.cuti);
 
   const { y, m } = kym(selB);
@@ -25,7 +26,16 @@ export default function SummaryCards() {
 
   const totalER = expRutin.filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m)).reduce((a, e) => a + e.jumlah, 0);
   const totalExpEx = expEx.filter((x) => x.bk === selB).reduce((a, x) => a + x.jumlah, 0);
-  const totalExpense = totalER + totalExpEx;
+
+  const totalCicilan = hutang.filter((h) => {
+    if (h.htipe !== "cicilan") return false;
+    const start = h.mulaiY * 12 + h.mulaiM;
+    const end = h.selesaiY * 12 + h.selesaiM;
+    const cur = y * 12 + m;
+    return cur >= start && cur <= end && h.sudah < h.pokok;
+  }).reduce((a, h) => a + h.cicilan, 0);
+
+  const totalExpense = totalER + totalExpEx + totalCicilan;
 
   const sisa = totalIncome - totalExpense;
   const rasioTabungan = totalIncome > 0 ? Math.round((sisa / totalIncome) * 100) : 0;

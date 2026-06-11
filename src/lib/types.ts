@@ -56,6 +56,7 @@ export interface Hutang {
   mulaiM: number;
   selesaiY: number;
   selesaiM: number;
+  bankId?: string;
 }
 
 export interface Investasi {

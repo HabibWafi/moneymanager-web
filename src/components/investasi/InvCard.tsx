@@ -1,10 +1,10 @@
 "use client";
 import { Investasi } from "@/lib/types";
 import { fmt } from "@/lib/helpers";
-import { INV_TIPE_LABEL, INV_TIPE_COLORS } from "@/lib/constants";
+import { INV_TIPE_LABEL } from "@/lib/constants";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { Trash2, TrendingUp, TrendingDown } from "lucide-react";
+import { Trash2, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 
 function getInvValue(item: Investasi): { current: number; cost: number } {
   switch (item.tipe) {
@@ -25,7 +25,13 @@ function getLabel(item: Investasi): string {
   return INV_TIPE_LABEL[item.tipe] || item.tipe;
 }
 
-export default function InvCard({ item, onDelete }: { item: Investasi; onDelete: () => void }) {
+interface Props {
+  item: Investasi;
+  onDelete: () => void;
+  onEdit: () => void;
+}
+
+export default function InvCard({ item, onDelete, onEdit }: Props) {
   const { current, cost } = getInvValue(item);
   const gain = current - cost;
   const pct = cost > 0 ? ((gain / cost) * 100) : 0;
@@ -37,15 +43,20 @@ export default function InvCard({ item, onDelete }: { item: Investasi; onDelete:
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onEdit}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <h4 className="text-sm font-semibold text-slate-700">{getLabel(item)}</h4>
           <Badge color={badgeColorMap[item.tipe] || "slate"}>{INV_TIPE_LABEL[item.tipe]}</Badge>
         </div>
-        <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-400 hover:text-indigo-500 transition-all">
+            <Pencil size={14} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all">
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="flex items-end justify-between">

@@ -7,6 +7,7 @@ import { Calendar } from "lucide-react";
 export default function FutureProjection() {
   const pendapatanRutin = useAppStore((s) => s.pendapatanRutin);
   const expRutin = useAppStore((s) => s.expRutin);
+  const hutang = useAppStore((s) => s.hutang);
   const cuti = useAppStore((s) => s.cuti);
 
   const now = new Date();
@@ -24,12 +25,21 @@ export default function FutureProjection() {
       return a + p.jumlah * hk;
     }, 0);
 
-    const expense = expRutin.filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m)).reduce((a, e) => a + e.jumlah, 0);
+    const rutinExpense = expRutin.filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m)).reduce((a, e) => a + e.jumlah, 0);
 
+    const cicilanExpense = hutang.filter((h) => {
+      if (h.htipe !== "cicilan") return false;
+      const start = h.mulaiY * 12 + h.mulaiM;
+      const end = h.selesaiY * 12 + h.selesaiM;
+      const cur = y * 12 + m;
+      return cur >= start && cur <= end;
+    }).reduce((a, h) => a + h.cicilan, 0);
+
+    const expense = rutinExpense + cicilanExpense;
     months.push({ label, y, m, income, expense, sisa: income - expense });
   }
 
-  if (pendapatanRutin.length === 0 && expRutin.length === 0) {
+  if (pendapatanRutin.length === 0 && expRutin.length === 0 && hutang.length === 0) {
     return (
       <Card>
         <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">

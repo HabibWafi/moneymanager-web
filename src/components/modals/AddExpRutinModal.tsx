@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { KE } from "@/lib/constants";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import NumericInput from "@/components/ui/NumericInput";
 
 export default function AddExpRutinModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const expRutin = useAppStore((s) => s.expRutin);
@@ -58,7 +59,7 @@ export default function AddExpRutinModal({ open, onClose }: { open: boolean; onC
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">Jumlah/Bulan (Rp)</label>
-          <input type="number" value={jumlah} onChange={(e) => setJumlah(e.target.value)} placeholder="0" className={inputCls} />
+          <NumericInput value={jumlah} onChange={setJumlah} className={inputCls} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

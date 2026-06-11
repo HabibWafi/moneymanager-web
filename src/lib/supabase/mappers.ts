@@ -191,6 +191,7 @@ export function dbToHutang(row: any): Hutang {
     mulaiM: row.mulai_m,
     selesaiY: row.selesai_y,
     selesaiM: row.selesai_m,
+    bankId: row.bank_id || undefined,
   };
 }
 
@@ -207,6 +208,7 @@ export function hutangToDb(h: Hutang, userId: string) {
     mulai_m: h.mulaiM,
     selesai_y: h.selesaiY,
     selesai_m: h.selesaiM,
+    bank_id: h.bankId || null,
   };
 }
 
