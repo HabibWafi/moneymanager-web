@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, AppData } from "@/lib/types";
+import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, MonthlySnapshot, AppData } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { fetchCryptoPrices, fetchStockPrices } from "@/lib/api";
-import { ymk, currentYM } from "@/lib/helpers";
+import { ymk, kym, currentYM, computeMonthTotals, computeNetWorth, calcInvValue, firstDataMonth } from "@/lib/helpers";
 import {
   dbToBank, bankToDb,
   dbToBankTransfer, bankTransferToDb,
@@ -14,6 +14,7 @@ import {
   dbToInvestasi, investasiToDb,
   dbToHoliday, holidayToDb,
   dbToBudget, budgetToDb,
+  dbToSnapshot, snapshotToDb,
 } from "@/lib/supabase/mappers";
 
 function getSupabase() {
@@ -32,6 +33,7 @@ interface AppStore {
   hutang: Hutang[];
   inv: Investasi[];
   budgets: Budget[];
+  snapshots: MonthlySnapshot[];
   cuti: Record<string, number[]>;
   selB: string;
   cryptoLoading: boolean;
@@ -39,6 +41,7 @@ interface AppStore {
   userId: string | null;
 
   init: (uid: string) => Promise<void>;
+  captureSnapshots: () => Promise<void>;
   setSelB: (v: string) => void;
 
   saveBanks: (banks: Bank[]) => void;
@@ -85,6 +88,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   hutang: [],
   inv: [],
   budgets: [],
+  snapshots: [],
   cuti: {},
   selB: (() => { const { y, m } = currentYM(); return ymk(y, m); })(),
   cryptoLoading: false,
@@ -107,6 +111,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         { data: investments, error: e8 },
         { data: holidays, error: e9 },
         { data: budgetsData, error: e10 },
+        { data: snapshotsData, error: e11 },
       ] = await Promise.all([
         sb.from("banks").select("*"),
         sb.from("bank_transfers").select("*"),
@@ -118,9 +123,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         sb.from("investments").select("*"),
         sb.from("holidays").select("*"),
         sb.from("budgets").select("*"),
+        sb.from("monthly_snapshots").select("*"),
       ]);
 
-      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10].filter(Boolean);
+      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11].filter(Boolean);
       if (errors.length) {
         console.error("Supabase load errors:", errors);
       }
@@ -141,15 +147,79 @@ export const useAppStore = create<AppStore>((set, get) => ({
         hutang: (debts ?? []).map(dbToHutang),
         inv: (investments ?? []).map(dbToInvestasi),
         budgets: (budgetsData ?? []).map(dbToBudget),
+        snapshots: (snapshotsData ?? []).map(dbToSnapshot),
         cuti: cutiMap,
         userId: uid,
       });
+
+      // Freeze completed months & refresh current-month snapshot (non-blocking).
+      get().captureSnapshots();
     } catch (err) {
       console.error("Failed to load data:", err);
       set({ userId: uid, loadError: "Gagal memuat data. Periksa koneksi internet Anda." });
     } finally {
       set({ loaded: true });
     }
+  },
+
+  captureSnapshots: async () => {
+    const s = get();
+    const uid = s.userId;
+    if (!uid) return;
+
+    const { y: cy, m: cm } = currentYM();
+    const curIdx = cy * 12 + cm;
+    const firstBk = firstDataMonth(s);
+    const { y: fy, m: fm } = kym(firstBk);
+    const firstIdx = fy * 12 + fm;
+
+    const existing = new Map(s.snapshots.map((x) => [x.bk, x]));
+    const bankTotal = s.banks.reduce((a, b) => a + b.saldo, 0);
+    const invTotal = calcInvValue(s.inv);
+    const hutangTotal = s.hutang.reduce((a, h) => a + Math.max(h.pokok - h.sudah, 0), 0);
+    const curNetWorth = computeNetWorth(s);
+
+    const toUpsert: MonthlySnapshot[] = [];
+    let prevNetWorth = 0;
+
+    for (let idx = firstIdx; idx <= curIdx; idx++) {
+      const y = Math.floor((idx - 1) / 12);
+      const m = ((idx - 1) % 12) + 1;
+      const bk = ymk(y, m);
+      const isCurrent = idx === curIdx;
+      const prior = existing.get(bk);
+
+      if (!isCurrent && prior) {
+        // Past month already frozen — keep as-is.
+        prevNetWorth = prior.netWorth;
+        continue;
+      }
+
+      const totals = computeMonthTotals(s, y, m, true);
+      const netWorth = isCurrent ? curNetWorth : prevNetWorth + totals.sisa;
+      prevNetWorth = netWorth;
+
+      const snap: MonthlySnapshot = {
+        id: `${uid}_${bk}`,
+        bk,
+        income: totals.income,
+        expense: totals.expense,
+        sisa: totals.sisa,
+        netWorth,
+        bankTotal: isCurrent ? bankTotal : 0,
+        invTotal: isCurrent ? invTotal : 0,
+        hutangTotal: isCurrent ? hutangTotal : 0,
+      };
+      toUpsert.push(snap);
+    }
+
+    if (toUpsert.length === 0) return;
+
+    const merged = [...s.snapshots.filter((x) => !toUpsert.some((u) => u.bk === x.bk)), ...toUpsert];
+    set({ snapshots: merged });
+
+    const sb = getSupabase();
+    await sb.from("monthly_snapshots").upsert(toUpsert.map((x) => snapshotToDb(x, uid)));
   },
 
   setSelB: (v) => set({ selB: v }),
@@ -472,6 +542,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       hutang: s.hutang,
       inv: s.inv,
       budgets: s.budgets,
+      snapshots: s.snapshots,
       cuti: s.cuti,
     };
   },
@@ -493,6 +564,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sb.from("debts").delete().neq("id", ""),
       sb.from("investments").delete().neq("id", ""),
       sb.from("budgets").delete().neq("id", ""),
+      sb.from("monthly_snapshots").delete().neq("id", ""),
       sb.from("holidays").delete().neq("id", "0"),
     ]);
 
@@ -506,6 +578,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (data.hutang.length) await sb.from("debts").insert(data.hutang.map((h) => hutangToDb(h, uid)));
     if (data.inv.length) await sb.from("investments").insert(data.inv.map((i) => investasiToDb(i, uid)));
     if (data.budgets?.length) await sb.from("budgets").insert(data.budgets.map((b) => budgetToDb(b, uid)));
+    if (data.snapshots?.length) await sb.from("monthly_snapshots").insert(data.snapshots.map((x) => snapshotToDb(x, uid)));
 
     for (const [bk, days] of Object.entries(data.cuti)) {
       await sb.from("holidays").upsert(holidayToDb(bk, days, uid), { onConflict: "user_id,bk" });

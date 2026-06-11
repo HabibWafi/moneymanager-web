@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
-import { mOpts } from "@/lib/helpers";
+import { monthOptionsRange, firstDataMonth } from "@/lib/helpers";
 import PendapatanPanel from "@/components/aruskas/PendapatanPanel";
 import PengeluaranPanel from "@/components/aruskas/PengeluaranPanel";
 import TransferPanel from "@/components/aruskas/TransferPanel";
@@ -14,7 +14,10 @@ import TransferModal from "@/components/modals/TransferModal";
 export default function ArusKasPage() {
   const selB = useAppStore((s) => s.selB);
   const setSelB = useAppStore((s) => s.setSelB);
-  const opts = mOpts();
+  const incEx = useAppStore((s) => s.incEx);
+  const expEx = useAppStore((s) => s.expEx);
+  const snapshots = useAppStore((s) => s.snapshots);
+  const opts = monthOptionsRange(firstDataMonth({ incEx, expEx, snapshots }), 6);
 
   const [showAddInc, setShowAddInc] = useState(false);
   const [showAddExp, setShowAddExp] = useState(false);

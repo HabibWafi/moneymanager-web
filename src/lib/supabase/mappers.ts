@@ -8,6 +8,7 @@ import type {
   Hutang,
   Investasi,
   Budget,
+  MonthlySnapshot,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -315,5 +316,38 @@ export function budgetToDb(b: Budget, userId: string) {
     user_id: userId,
     kat: b.kat,
     jumlah: b.jumlah,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// MonthlySnapshot
+// ---------------------------------------------------------------------------
+
+export function dbToSnapshot(row: any): MonthlySnapshot {
+  return {
+    id: row.id,
+    bk: row.bk,
+    income: Number(row.income),
+    expense: Number(row.expense),
+    sisa: Number(row.sisa),
+    netWorth: Number(row.net_worth),
+    bankTotal: Number(row.bank_total),
+    invTotal: Number(row.inv_total),
+    hutangTotal: Number(row.hutang_total),
+  };
+}
+
+export function snapshotToDb(s: MonthlySnapshot, userId: string) {
+  return {
+    id: s.id,
+    user_id: userId,
+    bk: s.bk,
+    income: s.income,
+    expense: s.expense,
+    sisa: s.sisa,
+    net_worth: s.netWorth,
+    bank_total: s.bankTotal,
+    inv_total: s.invTotal,
+    hutang_total: s.hutangTotal,
   };
 }

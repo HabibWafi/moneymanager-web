@@ -1,6 +1,6 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
-import { fmt } from "@/lib/helpers";
+import { fmt, calcInvValue, computeNetWorth } from "@/lib/helpers";
 import { Wallet, TrendingUp, TrendingDown, CreditCard } from "lucide-react";
 
 export default function TotalAsetHero() {
@@ -10,15 +10,7 @@ export default function TotalAsetHero() {
 
   const totalBank = banks.reduce((a, b) => a + b.saldo, 0);
 
-  const totalInv = inv.reduce((a, item) => {
-    if (item.tipe === "saham" && item.lot && item.hargaSkrg) return a + item.lot * 100 * item.hargaSkrg;
-    if (item.tipe === "emas" && item.gram && item.hargaSkrg) return a + item.gram * item.hargaSkrg;
-    if (item.tipe === "kripto" && item.jml && item.hargaSkrg) return a + item.jml * item.hargaSkrg;
-    if (item.tipe === "obligasi" && item.nominal) return a + item.nominal;
-    if (item.tipe === "deposito" && item.pokok) return a + item.pokok;
-    if (item.tipe === "reksadana" && item.unit && item.nabSkrg) return a + item.unit * item.nabSkrg;
-    return a;
-  }, 0);
+  const totalInv = calcInvValue(inv);
 
   const totalInvBeli = inv.reduce((a, item) => {
     if (item.tipe === "saham" && item.lot && item.hargaBeli) return a + item.lot * 100 * item.hargaBeli;
@@ -31,7 +23,7 @@ export default function TotalAsetHero() {
   }, 0);
 
   const totalHutang = hutang.reduce((a, h) => a + Math.max(h.pokok - h.sudah, 0), 0);
-  const netWorth = totalBank + totalInv - totalHutang;
+  const netWorth = computeNetWorth({ banks, inv, hutang });
   const gain = totalInv - totalInvBeli;
   const isPositive = gain >= 0;
 

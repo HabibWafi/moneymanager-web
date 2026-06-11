@@ -1,6 +1,6 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
-import { mOpts } from "@/lib/helpers";
+import { monthOptionsRange, firstDataMonth } from "@/lib/helpers";
 import TotalAsetHero from "@/components/home/TotalAsetHero";
 import SummaryCards from "@/components/home/SummaryCards";
 import PortfolioBar from "@/components/home/PortfolioBar";
@@ -12,7 +12,10 @@ import FutureProjection from "@/components/home/FutureProjection";
 export default function HomePage() {
   const selB = useAppStore((s) => s.selB);
   const setSelB = useAppStore((s) => s.setSelB);
-  const opts = mOpts();
+  const incEx = useAppStore((s) => s.incEx);
+  const expEx = useAppStore((s) => s.expEx);
+  const snapshots = useAppStore((s) => s.snapshots);
+  const opts = monthOptionsRange(firstDataMonth({ incEx, expEx, snapshots }), 6);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">

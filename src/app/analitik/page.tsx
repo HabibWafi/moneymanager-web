@@ -1,9 +1,10 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
-import { mOpts, fmt, kym, ghk, isExpRutinActive } from "@/lib/helpers";
+import { monthOptionsRange, firstDataMonth, fmt, kym, ghk, isExpRutinActive } from "@/lib/helpers";
 import PieExpense from "@/components/analitik/PieExpense";
 import BarMonthly from "@/components/analitik/BarMonthly";
 import BudgetSection from "@/components/budget/BudgetSection";
+import RiwayatSection from "@/components/analitik/RiwayatSection";
 import Card from "@/components/ui/Card";
 
 export default function AnalitikPage() {
@@ -13,8 +14,9 @@ export default function AnalitikPage() {
   const incEx = useAppStore((s) => s.incEx);
   const expRutin = useAppStore((s) => s.expRutin);
   const expEx = useAppStore((s) => s.expEx);
+  const snapshots = useAppStore((s) => s.snapshots);
   const cuti = useAppStore((s) => s.cuti);
-  const opts = mOpts();
+  const opts = monthOptionsRange(firstDataMonth({ incEx, expEx, snapshots }), 0);
 
   const { y, m } = kym(selB);
   const hk = ghk(y, m, cuti);
@@ -55,6 +57,7 @@ export default function AnalitikPage() {
       </div>
 
       <BudgetSection />
+      <RiwayatSection />
       <PieExpense />
       <BarMonthly />
     </div>

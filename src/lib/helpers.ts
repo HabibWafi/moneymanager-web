@@ -1,3 +1,5 @@
+import type { Bank, Investasi, Hutang, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, MonthlySnapshot } from "@/lib/types";
+
 export function fmt(n: number, currency: "IDR" | "USD" = "IDR"): string {
   if (currency === "USD") return fmtUsd(n);
   return "Rp " + n.toLocaleString("id-ID");
@@ -83,4 +85,148 @@ export function pctColor(pct: number): string {
   if (pct >= 90) return "bg-red-500";
   if (pct >= 70) return "bg-amber-500";
   return "bg-indigo-500";
+}
+
+// ---------------------------------------------------------------------------
+// Finance computations (shared across home, projection, snapshot, history)
+// ---------------------------------------------------------------------------
+
+export function calcInvValue(inv: Investasi[]): number {
+  return inv.reduce((a, item) => {
+    if (item.tipe === "saham" && item.lot && item.hargaSkrg) return a + item.lot * 100 * item.hargaSkrg;
+    if (item.tipe === "emas" && item.gram && item.hargaSkrg) return a + item.gram * item.hargaSkrg;
+    if (item.tipe === "kripto" && item.jml && item.hargaSkrg) return a + item.jml * item.hargaSkrg;
+    if (item.tipe === "obligasi" && item.nominal) return a + item.nominal;
+    if (item.tipe === "deposito" && item.pokok) return a + item.pokok;
+    if (item.tipe === "reksadana" && item.unit && item.nabSkrg) return a + item.unit * item.nabSkrg;
+    return a;
+  }, 0);
+}
+
+export function computeNetWorth(s: { banks: Bank[]; inv: Investasi[]; hutang: Hutang[] }): number {
+  const bankTotal = s.banks.reduce((a, b) => a + b.saldo, 0);
+  const invTotal = calcInvValue(s.inv);
+  const hutangTotal = s.hutang.reduce((a, h) => a + Math.max(h.pokok - h.sudah, 0), 0);
+  return bankTotal + invTotal - hutangTotal;
+}
+
+interface FinanceState {
+  banks: Bank[];
+  inv: Investasi[];
+  hutang: Hutang[];
+  pendapatanRutin: PendapatanRutin[];
+  incEx: IncomeExtra[];
+  expRutin: ExpRutin[];
+  expEx: ExpExtra[];
+  cuti: Record<string, number[]>;
+  snapshots: MonthlySnapshot[];
+}
+
+// Income/expense/sisa for one month. `includeExtra` off → projection (rutin + cicilan only).
+export function computeMonthTotals(
+  s: FinanceState,
+  y: number,
+  m: number,
+  includeExtra = true
+): { income: number; expense: number; sisa: number } {
+  const hk = ghk(y, m, s.cuti);
+  const bk = ymk(y, m);
+  const cur = y * 12 + m;
+
+  let income = s.pendapatanRutin.filter((p) => p.aktif).reduce((a, p) => {
+    return a + (p.tipe === "tetap" ? p.jumlah : p.jumlah * hk);
+  }, 0);
+  if (includeExtra) {
+    income += s.incEx.filter((x) => x.bk === bk).reduce((a, x) => a + x.jumlah, 0);
+  }
+
+  let expense = s.expRutin
+    .filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m))
+    .reduce((a, e) => a + e.jumlah, 0);
+  expense += s.hutang.filter((h) => {
+    if (h.htipe !== "cicilan") return false;
+    const start = h.mulaiY * 12 + h.mulaiM;
+    const end = h.selesaiY * 12 + h.selesaiM;
+    return cur >= start && cur <= end && h.sudah < h.pokok;
+  }).reduce((a, h) => a + h.cicilan, 0);
+  if (includeExtra) {
+    expense += s.expEx.filter((x) => x.bk === bk).reduce((a, x) => a + x.jumlah, 0);
+  }
+
+  return { income, expense, sisa: income - expense };
+}
+
+export type MonthStatus = "riwayat" | "berjalan" | "proyeksi";
+
+export interface MonthView {
+  income: number;
+  expense: number;
+  sisa: number;
+  netWorth: number;
+  status: MonthStatus;
+}
+
+// Unified per-month view for any bk: frozen snapshot (past), live (current), or projection (future).
+export function computeMonthView(s: FinanceState, bk: string): MonthView {
+  const { y, m } = kym(bk);
+  const target = y * 12 + m;
+  const { y: cy, m: cm } = currentYM();
+  const curIdx = cy * 12 + cm;
+
+  if (target < curIdx) {
+    // Past — prefer frozen snapshot
+    const snap = s.snapshots.find((x) => x.bk === bk);
+    if (snap) {
+      return { income: snap.income, expense: snap.expense, sisa: snap.sisa, netWorth: snap.netWorth, status: "riwayat" };
+    }
+    const t = computeMonthTotals(s, y, m, true);
+    return { ...t, netWorth: computeNetWorth(s), status: "riwayat" };
+  }
+
+  if (target === curIdx) {
+    const t = computeMonthTotals(s, y, m, true);
+    return { ...t, netWorth: computeNetWorth(s), status: "berjalan" };
+  }
+
+  // Future — projection. Net worth = current + sum of projected sisa from next month..target
+  const t = computeMonthTotals(s, y, m, false);
+  let nw = computeNetWorth(s);
+  for (let idx = curIdx + 1; idx <= target; idx++) {
+    const yy = Math.floor((idx - 1) / 12);
+    const mm = ((idx - 1) % 12) + 1;
+    nw += computeMonthTotals(s, yy, mm, false).sisa;
+  }
+  return { ...t, netWorth: nw, status: "proyeksi" };
+}
+
+// Earliest month with data (incEx/expEx/snapshots), fallback current month.
+export function firstDataMonth(s: { incEx: IncomeExtra[]; expEx: ExpExtra[]; snapshots: MonthlySnapshot[] }): string {
+  const keys = [
+    ...s.incEx.map((x) => x.bk),
+    ...s.expEx.map((x) => x.bk),
+    ...s.snapshots.map((x) => x.bk),
+  ].filter(Boolean);
+  if (keys.length === 0) {
+    const { y, m } = currentYM();
+    return ymk(y, m);
+  }
+  return keys.sort()[0];
+}
+
+// Month options from firstBk through current + futureCount, descending.
+export function monthOptionsRange(firstBk: string, futureCount = 0): { label: string; value: string }[] {
+  const { y: fy, m: fm } = kym(firstBk);
+  const firstIdx = fy * 12 + fm;
+  const { y: cy, m: cm } = currentYM();
+  const lastIdx = cy * 12 + cm + futureCount;
+
+  const opts: { label: string; value: string }[] = [];
+  for (let idx = lastIdx; idx >= firstIdx; idx--) {
+    const y = Math.floor((idx - 1) / 12);
+    const m = ((idx - 1) % 12) + 1;
+    const d = new Date(y, m - 1, 1);
+    const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    opts.push({ label, value: ymk(y, m) });
+  }
+  return opts;
 }
