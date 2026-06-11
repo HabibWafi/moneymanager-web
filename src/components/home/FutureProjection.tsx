@@ -1,21 +1,9 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
-import { fmt, fmtS, ghk, isExpRutinActive } from "@/lib/helpers";
+import { fmt, fmtS, computeMonthTotals, computeNetWorth } from "@/lib/helpers";
 import Card from "@/components/ui/Card";
 import { Calendar } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-
-function calcInvValue(inv: any[]): number {
-  return inv.reduce((a: number, item: any) => {
-    if (item.tipe === "saham" && item.lot && item.hargaSkrg) return a + item.lot * 100 * item.hargaSkrg;
-    if (item.tipe === "emas" && item.gram && item.hargaSkrg) return a + item.gram * item.hargaSkrg;
-    if (item.tipe === "kripto" && item.jml && item.hargaSkrg) return a + item.jml * item.hargaSkrg;
-    if (item.tipe === "obligasi" && item.nominal) return a + item.nominal;
-    if (item.tipe === "deposito" && item.pokok) return a + item.pokok;
-    if (item.tipe === "reksadana" && item.unit && item.nabSkrg) return a + item.unit * item.nabSkrg;
-    return a;
-  }, 0);
-}
 
 export default function FutureProjection() {
   const pendapatanRutin = useAppStore((s) => s.pendapatanRutin);
@@ -24,11 +12,12 @@ export default function FutureProjection() {
   const cuti = useAppStore((s) => s.cuti);
   const banks = useAppStore((s) => s.banks);
   const inv = useAppStore((s) => s.inv);
+  const incEx = useAppStore((s) => s.incEx);
+  const expEx = useAppStore((s) => s.expEx);
+  const snapshots = useAppStore((s) => s.snapshots);
 
-  const totalBank = banks.reduce((a, b) => a + b.saldo, 0);
-  const totalInv = calcInvValue(inv);
-  const totalHutang = hutang.reduce((a, h) => a + Math.max(h.pokok - h.sudah, 0), 0);
-  const baseNetWorth = totalBank + totalInv - totalHutang;
+  const state = { banks, inv, hutang, pendapatanRutin, incEx, expRutin, expEx, snapshots, cuti };
+  const baseNetWorth = computeNetWorth(state);
 
   const now = new Date();
   let cumulativeSisa = 0;
@@ -40,25 +29,9 @@ export default function FutureProjection() {
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
     const label = d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
-    const hk = ghk(y, m, cuti);
 
-    const income = pendapatanRutin.filter((p) => p.aktif).reduce((a, p) => {
-      if (p.tipe === "tetap") return a + p.jumlah;
-      return a + p.jumlah * hk;
-    }, 0);
-
-    const rutinExpense = expRutin.filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m)).reduce((a, e) => a + e.jumlah, 0);
-
-    const cicilanExpense = hutang.filter((h) => {
-      if (h.htipe !== "cicilan") return false;
-      const start = h.mulaiY * 12 + h.mulaiM;
-      const end = h.selesaiY * 12 + h.selesaiM;
-      const cur = y * 12 + m;
-      return cur >= start && cur <= end;
-    }).reduce((a, h) => a + h.cicilan, 0);
-
-    const expense = rutinExpense + cicilanExpense;
-    const sisa = income - expense;
+    // Forward view: routine + installments only (no extras yet for future months).
+    const { income, expense, sisa } = computeMonthTotals(state, y, m, i === 0);
     cumulativeSisa += sisa;
     const netWorth = baseNetWorth + cumulativeSisa;
 
@@ -82,27 +55,27 @@ export default function FutureProjection() {
         <Calendar size={16} className="text-indigo-500" /> Proyeksi 6 Bulan
       </h3>
 
-      {/* Table */}
+      {/* Table: 2 rows x 2 cols per month so full numbers fit */}
       <div className="space-y-2 mb-5">
         {months.map((mo, i) => (
           <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/40 hover:bg-indigo-100/50 transition-colors">
-            <span className="text-xs font-semibold text-slate-500 w-16 flex-shrink-0">{mo.label}</span>
-            <div className="flex-1 grid grid-cols-4 gap-2 text-xs">
-              <div>
-                <p className="text-slate-400">Masuk</p>
-                <p className="font-semibold text-emerald-600">{fmtS(mo.income)}</p>
+            <span className="text-xs font-semibold text-slate-500 w-12 flex-shrink-0">{mo.label}</span>
+            <div className="flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+              <div className="flex justify-between gap-1">
+                <span className="text-slate-400">Masuk</span>
+                <span className="font-semibold text-emerald-600 tabular-nums">{fmt(mo.income)}</span>
               </div>
-              <div>
-                <p className="text-slate-400">Keluar</p>
-                <p className="font-semibold text-red-500">{fmtS(mo.expense)}</p>
+              <div className="flex justify-between gap-1">
+                <span className="text-slate-400">Sisa</span>
+                <span className={`font-semibold tabular-nums ${mo.sisa >= 0 ? "text-indigo-600" : "text-red-600"}`}>{fmt(mo.sisa)}</span>
               </div>
-              <div>
-                <p className="text-slate-400">Sisa</p>
-                <p className={`font-semibold ${mo.sisa >= 0 ? "text-indigo-600" : "text-red-600"}`}>{fmtS(mo.sisa)}</p>
+              <div className="flex justify-between gap-1">
+                <span className="text-slate-400">Keluar</span>
+                <span className="font-semibold text-red-500 tabular-nums">{fmt(mo.expense)}</span>
               </div>
-              <div>
-                <p className="text-slate-400">Kekayaan</p>
-                <p className={`font-semibold ${mo.netWorth >= 0 ? "text-violet-600" : "text-red-600"}`}>{fmtS(mo.netWorth)}</p>
+              <div className="flex justify-between gap-1">
+                <span className="text-slate-400">Kekayaan</span>
+                <span className={`font-semibold tabular-nums ${mo.netWorth >= 0 ? "text-violet-600" : "text-red-600"}`}>{fmt(mo.netWorth)}</span>
               </div>
             </div>
           </div>

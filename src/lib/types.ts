@@ -66,6 +66,18 @@ export interface Budget {
   jumlah: number;
 }
 
+export interface MonthlySnapshot {
+  id: string;
+  bk: string; // YYYY-MM
+  income: number;
+  expense: number;
+  sisa: number;
+  netWorth: number;
+  bankTotal: number;
+  invTotal: number;
+  hutangTotal: number;
+}
+
 export interface Investasi {
   id: string;
   tipe: "saham" | "emas" | "kripto" | "obligasi" | "deposito" | "reksadana";
@@ -113,4 +125,5 @@ export interface AppData {
   inv: Investasi[];
   cuti: Record<string, number[]>;
   budgets: Budget[];
+  snapshots: MonthlySnapshot[];
 }
