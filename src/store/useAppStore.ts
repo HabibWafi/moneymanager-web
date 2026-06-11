@@ -19,14 +19,9 @@ function getSupabase() {
   return createClient();
 }
 
-async function getUserId(): Promise<string | null> {
-  const sb = getSupabase();
-  const { data: { user } } = await sb.auth.getUser();
-  return user?.id ?? null;
-}
-
 interface AppStore {
   loaded: boolean;
+  loadError: string;
   banks: Bank[];
   bankTrf: BankTransfer[];
   pendapatanRutin: PendapatanRutin[];
@@ -41,7 +36,7 @@ interface AppStore {
   cryptoErr: string;
   userId: string | null;
 
-  init: () => Promise<void>;
+  init: (uid: string) => Promise<void>;
   setSelB: (v: string) => void;
 
   saveBanks: (banks: Bank[]) => void;
@@ -72,6 +67,7 @@ interface AppStore {
 
 export const useAppStore = create<AppStore>((set, get) => ({
   loaded: false,
+  loadError: "",
   banks: [],
   bankTrf: [],
   pendapatanRutin: [],
@@ -86,54 +82,62 @@ export const useAppStore = create<AppStore>((set, get) => ({
   cryptoErr: "",
   userId: null,
 
-  init: async () => {
+  init: async (uid: string) => {
+    set({ loadError: "" });
     const sb = getSupabase();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return;
 
-    const uid = user.id;
+    try {
+      const [
+        { data: banks, error: e1 },
+        { data: bankTrf, error: e2 },
+        { data: incomeRoutine, error: e3 },
+        { data: incomeExtra, error: e4 },
+        { data: expenseRoutine, error: e5 },
+        { data: expenseExtra, error: e6 },
+        { data: debts, error: e7 },
+        { data: investments, error: e8 },
+        { data: holidays, error: e9 },
+      ] = await Promise.all([
+        sb.from("banks").select("*"),
+        sb.from("bank_transfers").select("*"),
+        sb.from("income_routine").select("*"),
+        sb.from("income_extra").select("*"),
+        sb.from("expense_routine").select("*"),
+        sb.from("expense_extra").select("*"),
+        sb.from("debts").select("*"),
+        sb.from("investments").select("*"),
+        sb.from("holidays").select("*"),
+      ]);
 
-    const [
-      { data: banks },
-      { data: bankTrf },
-      { data: incomeRoutine },
-      { data: incomeExtra },
-      { data: expenseRoutine },
-      { data: expenseExtra },
-      { data: debts },
-      { data: investments },
-      { data: holidays },
-    ] = await Promise.all([
-      sb.from("banks").select("*"),
-      sb.from("bank_transfers").select("*"),
-      sb.from("income_routine").select("*"),
-      sb.from("income_extra").select("*"),
-      sb.from("expense_routine").select("*"),
-      sb.from("expense_extra").select("*"),
-      sb.from("debts").select("*"),
-      sb.from("investments").select("*"),
-      sb.from("holidays").select("*"),
-    ]);
+      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9].filter(Boolean);
+      if (errors.length) {
+        console.error("Supabase load errors:", errors);
+      }
 
-    const cutiMap: Record<string, number[]> = {};
-    (holidays ?? []).forEach((h: any) => {
-      const hol = dbToHoliday(h);
-      cutiMap[hol.bk] = hol.days;
-    });
+      const cutiMap: Record<string, number[]> = {};
+      (holidays ?? []).forEach((h: any) => {
+        const hol = dbToHoliday(h);
+        cutiMap[hol.bk] = hol.days;
+      });
 
-    set({
-      banks: (banks ?? []).map(dbToBank),
-      bankTrf: (bankTrf ?? []).map(dbToBankTransfer),
-      pendapatanRutin: (incomeRoutine ?? []).map(dbToPendapatanRutin),
-      incEx: (incomeExtra ?? []).map(dbToIncomeExtra),
-      expRutin: (expenseRoutine ?? []).map(dbToExpRutin),
-      expEx: (expenseExtra ?? []).map(dbToExpExtra),
-      hutang: (debts ?? []).map(dbToHutang),
-      inv: (investments ?? []).map(dbToInvestasi),
-      cuti: cutiMap,
-      userId: uid,
-      loaded: true,
-    });
+      set({
+        banks: (banks ?? []).map(dbToBank),
+        bankTrf: (bankTrf ?? []).map(dbToBankTransfer),
+        pendapatanRutin: (incomeRoutine ?? []).map(dbToPendapatanRutin),
+        incEx: (incomeExtra ?? []).map(dbToIncomeExtra),
+        expRutin: (expenseRoutine ?? []).map(dbToExpRutin),
+        expEx: (expenseExtra ?? []).map(dbToExpExtra),
+        hutang: (debts ?? []).map(dbToHutang),
+        inv: (investments ?? []).map(dbToInvestasi),
+        cuti: cutiMap,
+        userId: uid,
+      });
+    } catch (err) {
+      console.error("Failed to load data:", err);
+      set({ userId: uid, loadError: "Gagal memuat data. Periksa koneksi internet Anda." });
+    } finally {
+      set({ loaded: true });
+    }
   },
 
   setSelB: (v) => set({ selB: v }),
@@ -149,8 +153,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (deletedIds.length) {
       await sb.from("banks").delete().in("id", deletedIds);
     }
-    for (const bank of banks) {
-      await sb.from("banks").upsert(bankToDb(bank, uid));
+    if (banks.length) {
+      await sb.from("banks").upsert(banks.map((b) => bankToDb(b, uid)));
     }
   },
 
@@ -159,8 +163,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const uid = get().userId;
     if (!uid) return;
     const sb = getSupabase();
-    for (const p of pr) {
-      await sb.from("income_routine").upsert(pendapatanRutinToDb(p, uid));
+    if (pr.length) {
+      await sb.from("income_routine").upsert(pr.map((p) => pendapatanRutinToDb(p, uid)));
     }
   },
 
@@ -187,8 +191,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const uid = get().userId;
     if (!uid) return;
     const sb = getSupabase();
-    for (const e of er) {
-      await sb.from("expense_routine").upsert(expRutinToDb(e, uid));
+    if (er.length) {
+      await sb.from("expense_routine").upsert(er.map((e) => expRutinToDb(e, uid)));
     }
   },
 
@@ -239,8 +243,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const uid = get().userId;
     if (!uid) return;
     const sb = getSupabase();
-    for (const item of items) {
-      await sb.from("investments").upsert(investasiToDb(item, uid));
+    if (items.length) {
+      await sb.from("investments").upsert(items.map((item) => investasiToDb(item, uid)));
     }
   },
 

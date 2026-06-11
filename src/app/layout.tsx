@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "Money Manager",
   description: "Kelola keuangan Anda dengan mudah dan cerdas",
   manifest: "/manifest.json",
+  icons: {
+    apple: "/icons/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
