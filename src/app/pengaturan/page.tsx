@@ -7,7 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import AddBankModal from "@/components/modals/AddBankModal";
 import AdjustSaldoModal from "@/components/modals/AdjustSaldoModal";
-import { Plus, Trash2, Download, Upload, Landmark, Pencil } from "lucide-react";
+import { Plus, Trash2, Download, Upload, Landmark, Pencil, Star } from "lucide-react";
 import type { Bank } from "@/lib/types";
 
 export default function PengaturanPage() {
@@ -56,6 +56,12 @@ export default function PengaturanPage() {
     toast.add("Rekening dihapus", "success");
   };
 
+  const toggleUtama = (id: string) => {
+    const updated = banks.map((b) => ({ ...b, utama: b.id === id ? !b.utama : false }));
+    saveBanks(updated);
+    toast.add("Rekening utama diperbarui", "success");
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
       <h1 className="text-xl font-bold text-slate-900">Pengaturan</h1>
@@ -83,6 +89,11 @@ export default function PengaturanPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-slate-600">{fmt(b.saldo)}</span>
+                  <button onClick={() => toggleUtama(b.id)}
+                    className={`p-1 rounded-lg transition-all ${b.utama ? "text-amber-500 hover:bg-amber-50" : "opacity-0 group-hover:opacity-100 text-slate-300 hover:text-amber-400 hover:bg-amber-50"}`}
+                    title={b.utama ? "Rekening utama" : "Set sebagai utama"}>
+                    <Star size={14} fill={b.utama ? "currentColor" : "none"} />
+                  </button>
                   <button onClick={() => setAdjustBank(b)} className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-indigo-50 text-slate-400 hover:text-indigo-500 transition-all" title="Sesuaikan saldo">
                     <Pencil size={14} />
                   </button>

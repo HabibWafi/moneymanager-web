@@ -2,7 +2,7 @@ import type { Bank, Investasi, Hutang, PendapatanRutin, IncomeExtra, ExpRutin, E
 
 export function fmt(n: number, currency: "IDR" | "USD" = "IDR"): string {
   if (currency === "USD") return fmtUsd(n);
-  return "Rp " + n.toLocaleString("id-ID");
+  return "Rp " + n.toLocaleString("id-ID", { maximumFractionDigits: 2 });
 }
 
 export function fmtUsd(n: number): string {

@@ -1,7 +1,7 @@
 "use client";
 import { useAppStore } from "@/store/useAppStore";
 import { useToast } from "@/components/ui/Toast";
-import { fmt, ghk, kym } from "@/lib/helpers";
+import { fmt, ghk, kym, isExpRutinActive } from "@/lib/helpers";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -19,12 +19,15 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
   const incEx = useAppStore((s) => s.incEx);
   const delIncEx = useAppStore((s) => s.delIncEx);
   const cuti = useAppStore((s) => s.cuti);
+  const banks = useAppStore((s) => s.banks);
+  const realizationLog = useAppStore((s) => s.realizationLog);
   const toast = useToast();
 
   const { y, m } = kym(selB);
   const hk = ghk(y, m, cuti);
+  const bankName = (id?: string) => banks.find((b) => b.id === id)?.nama;
 
-  const rutinItems = pendapatanRutin;
+  const rutinItems = pendapatanRutin.filter((p) => isExpRutinActive(p.mulaiY, p.mulaiM, p.selesaiY, p.selesaiM, y, m));
   const activeRutin = rutinItems.filter((p) => p.aktif);
   const extraItems = incEx.filter((x) => x.bk === selB);
 
@@ -32,6 +35,9 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
     return a + (p.tipe === "tetap" ? p.jumlah : p.jumlah * hk);
   }, 0);
   const totalExtra = extraItems.reduce((a, x) => a + x.jumlah, 0);
+
+  const isRealized = (prId: string) =>
+    realizationLog.some((r) => r.sourceType === "income_routine" && r.sourceId === prId && r.bk === selB);
 
   const togglePR = (id: string) => {
     const item = pendapatanRutin.find((p) => p.id === id);
@@ -69,7 +75,20 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
                 </button>
                 <div>
                   <p className={`text-sm font-medium ${p.aktif ? "text-slate-700" : "text-slate-400 line-through"}`}>{p.nama}</p>
-                  <p className="text-xs text-slate-400">{p.kat} · {p.tipe === "tetap" ? "Bulanan" : `Harian (${hk} HK)`}</p>
+                  <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                    <span className="text-xs text-slate-400">{p.kat} · {p.tipe === "tetap" ? "Bulanan" : `Harian (${hk} HK)`}</span>
+                    {bankName(p.bankId) && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-md">{bankName(p.bankId)}</span>
+                    )}
+                    {p.tglBayar && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md">Tgl {p.tglBayar}</span>
+                    )}
+                    {p.realisasi === "manual" && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${isRealized(p.id) ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                        {isRealized(p.id) ? "Terealisasi" : "Manual"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -100,7 +119,13 @@ export default function PendapatanPanel({ onAddExtra, onAddRutin }: Props) {
             <div key={x.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
               <div>
                 <p className="text-sm font-medium text-slate-700">{x.desc}</p>
-                <p className="text-xs text-slate-400">{x.kat}</p>
+                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                  <span className="text-xs text-slate-400">{x.kat}</span>
+                  {x.tgl && <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md">{x.tgl}</span>}
+                  {x.status === "belum" && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-md">Belum Terealisasi</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-emerald-600">+{fmt(x.jumlah)}</span>

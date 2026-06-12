@@ -1,13 +1,18 @@
 "use client";
+import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { monthOptionsRange, firstDataMonth, fmt, kym, ghk, isExpRutinActive } from "@/lib/helpers";
 import PieExpense from "@/components/analitik/PieExpense";
 import BarMonthly from "@/components/analitik/BarMonthly";
 import BudgetSection from "@/components/budget/BudgetSection";
 import RiwayatSection from "@/components/analitik/RiwayatSection";
+import ReportModal from "@/components/modals/ReportModal";
 import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { FileText } from "lucide-react";
 
 export default function AnalitikPage() {
+  const [showReport, setShowReport] = useState(false);
   const selB = useAppStore((s) => s.selB);
   const setSelB = useAppStore((s) => s.setSelB);
   const pendapatanRutin = useAppStore((s) => s.pendapatanRutin);
@@ -60,6 +65,14 @@ export default function AnalitikPage() {
       <RiwayatSection />
       <PieExpense />
       <BarMonthly />
+
+      <div className="flex justify-center">
+        <Button variant="outline" onClick={() => setShowReport(true)}>
+          <FileText size={16} /> Ekspor Laporan Keuangan
+        </Button>
+      </div>
+
+      <ReportModal open={showReport} onClose={() => setShowReport(false)} />
     </div>
   );
 }

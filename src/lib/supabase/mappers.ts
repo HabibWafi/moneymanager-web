@@ -9,6 +9,7 @@ import type {
   Investasi,
   Budget,
   MonthlySnapshot,
+  RealizationLog,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,7 @@ export function dbToBank(row: any): Bank {
     saldo: Number(row.saldo),
     warna: row.warna,
     tipe: row.tipe,
+    utama: row.utama ?? false,
   };
 }
 
@@ -33,6 +35,7 @@ export function bankToDb(bank: Bank, userId: string) {
     saldo: bank.saldo,
     warna: bank.warna,
     tipe: bank.tipe,
+    utama: bank.utama ?? false,
   };
 }
 
@@ -75,6 +78,13 @@ export function dbToPendapatanRutin(row: any): PendapatanRutin {
     tipe: row.tipe,
     kat: row.kat,
     aktif: row.aktif,
+    bankId: row.bank_id || undefined,
+    tglBayar: row.tgl_bayar != null ? Number(row.tgl_bayar) : undefined,
+    mulaiY: row.mulai_y ?? new Date().getFullYear(),
+    mulaiM: row.mulai_m ?? (new Date().getMonth() + 1),
+    selesaiY: row.selesai_y ?? undefined,
+    selesaiM: row.selesai_m ?? undefined,
+    realisasi: row.realisasi ?? "otomatis",
   };
 }
 
@@ -87,6 +97,13 @@ export function pendapatanRutinToDb(p: PendapatanRutin, userId: string) {
     tipe: p.tipe,
     kat: p.kat,
     aktif: p.aktif,
+    bank_id: p.bankId || null,
+    tgl_bayar: p.tglBayar ?? null,
+    mulai_y: p.mulaiY,
+    mulai_m: p.mulaiM,
+    selesai_y: p.selesaiY ?? null,
+    selesai_m: p.selesaiM ?? null,
+    realisasi: p.realisasi,
   };
 }
 
@@ -102,6 +119,9 @@ export function dbToIncomeExtra(row: any): IncomeExtra {
     desc: row.desc,
     jumlah: Number(row.jumlah),
     sumber: row.sumber,
+    tgl: row.tgl || undefined,
+    status: row.status ?? "terjadi",
+    realisasi: row.realisasi || undefined,
   };
 }
 
@@ -114,6 +134,9 @@ export function incomeExtraToDb(x: IncomeExtra, userId: string) {
     desc: x.desc,
     jumlah: x.jumlah,
     sumber: x.sumber,
+    tgl: x.tgl || null,
+    status: x.status,
+    realisasi: x.realisasi || null,
   };
 }
 
@@ -132,6 +155,9 @@ export function dbToExpRutin(row: any): ExpRutin {
     selesaiY: row.selesai_y,
     selesaiM: row.selesai_m,
     kat: row.kat,
+    bankId: row.bank_id || undefined,
+    tglBayar: row.tgl_bayar != null ? Number(row.tgl_bayar) : undefined,
+    realisasi: row.realisasi ?? "otomatis",
   };
 }
 
@@ -147,6 +173,9 @@ export function expRutinToDb(e: ExpRutin, userId: string) {
     selesai_y: e.selesaiY,
     selesai_m: e.selesaiM,
     kat: e.kat,
+    bank_id: e.bankId || null,
+    tgl_bayar: e.tglBayar ?? null,
+    realisasi: e.realisasi,
   };
 }
 
@@ -162,6 +191,9 @@ export function dbToExpExtra(row: any): ExpExtra {
     desc: row.desc,
     jumlah: Number(row.jumlah),
     sumber: row.sumber,
+    tgl: row.tgl || undefined,
+    status: row.status ?? "terjadi",
+    realisasi: row.realisasi || undefined,
   };
 }
 
@@ -174,6 +206,9 @@ export function expExtraToDb(x: ExpExtra, userId: string) {
     desc: x.desc,
     jumlah: x.jumlah,
     sumber: x.sumber,
+    tgl: x.tgl || null,
+    status: x.status,
+    realisasi: x.realisasi || null,
   };
 }
 
@@ -349,5 +384,28 @@ export function snapshotToDb(s: MonthlySnapshot, userId: string) {
     bank_total: s.bankTotal,
     inv_total: s.invTotal,
     hutang_total: s.hutangTotal,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// RealizationLog
+// ---------------------------------------------------------------------------
+
+export function dbToRealizationLog(row: any): RealizationLog {
+  return {
+    id: row.id,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
+    bk: row.bk,
+  };
+}
+
+export function realizationLogToDb(r: RealizationLog, userId: string) {
+  return {
+    id: r.id,
+    user_id: userId,
+    source_type: r.sourceType,
+    source_id: r.sourceId,
+    bk: r.bk,
   };
 }

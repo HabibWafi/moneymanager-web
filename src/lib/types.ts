@@ -4,6 +4,7 @@ export interface Bank {
   saldo: number;
   warna: string;
   tipe: "bank" | "cash";
+  utama?: boolean;
 }
 
 export interface PendapatanRutin {
@@ -13,6 +14,13 @@ export interface PendapatanRutin {
   tipe: "tetap" | "harian";
   kat: string;
   aktif: boolean;
+  bankId?: string;
+  tglBayar?: number;
+  mulaiY: number;
+  mulaiM: number;
+  selesaiY?: number;
+  selesaiM?: number;
+  realisasi: "otomatis" | "manual";
 }
 
 export interface IncomeExtra {
@@ -22,6 +30,9 @@ export interface IncomeExtra {
   desc: string;
   jumlah: number;
   sumber: string; // bank id
+  tgl?: string;
+  status: "terjadi" | "belum";
+  realisasi?: "otomatis" | "manual";
 }
 
 export interface ExpRutin {
@@ -34,6 +45,9 @@ export interface ExpRutin {
   selesaiY?: number;
   selesaiM?: number;
   kat: string;
+  bankId?: string;
+  tglBayar?: number;
+  realisasi: "otomatis" | "manual";
 }
 
 export interface ExpExtra {
@@ -43,6 +57,9 @@ export interface ExpExtra {
   desc: string;
   jumlah: number;
   sumber: string;
+  tgl?: string;
+  status: "terjadi" | "belum";
+  realisasi?: "otomatis" | "manual";
 }
 
 export interface Hutang {
@@ -105,6 +122,13 @@ export interface Investasi {
   manajer?: string;
 }
 
+export interface RealizationLog {
+  id: string;
+  sourceType: "income_routine" | "expense_routine" | "income_extra" | "expense_extra";
+  sourceId: string;
+  bk: string;
+}
+
 export interface BankTransfer {
   id: string;
   dari: string;
@@ -126,4 +150,5 @@ export interface AppData {
   cuti: Record<string, number[]>;
   budgets: Budget[];
   snapshots: MonthlySnapshot[];
+  realizationLog: RealizationLog[];
 }
