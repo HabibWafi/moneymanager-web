@@ -8,6 +8,7 @@ import QuickActions from "@/components/home/QuickActions";
 import WealthAllocationChart from "@/components/home/WealthAllocationChart";
 import IncomeExpensePie from "@/components/home/IncomeExpensePie";
 import FutureProjection from "@/components/home/FutureProjection";
+import RealizationNotif from "@/components/home/RealizationNotif";
 
 export default function HomePage() {
   const selB = useAppStore((s) => s.selB);
@@ -36,6 +37,7 @@ export default function HomePage() {
       <TotalAsetHero />
       <QuickActions />
       <SummaryCards />
+      <RealizationNotif />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PortfolioBar />
         <WealthAllocationChart />

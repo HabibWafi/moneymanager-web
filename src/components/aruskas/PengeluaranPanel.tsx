@@ -19,9 +19,12 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
   const expEx = useAppStore((s) => s.expEx);
   const delExpEx = useAppStore((s) => s.delExpEx);
   const hutang = useAppStore((s) => s.hutang);
+  const banks = useAppStore((s) => s.banks);
+  const realizationLog = useAppStore((s) => s.realizationLog);
   const toast = useToast();
 
   const { y, m } = kym(selB);
+  const bankName = (id?: string) => banks.find((b) => b.id === id)?.nama;
 
   const rutinItems = expRutin.filter((e) => isExpRutinActive(e.mulaiY, e.mulaiM, e.selesaiY, e.selesaiM, y, m));
   const extraItems = expEx.filter((x) => x.bk === selB);
@@ -37,6 +40,9 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
   const totalRutin = rutinItems.reduce((a, e) => a + e.jumlah, 0);
   const totalExtra = extraItems.reduce((a, x) => a + x.jumlah, 0);
   const totalCicilan = cicilanItems.reduce((a, h) => a + h.cicilan, 0);
+
+  const isRealized = (erId: string) =>
+    realizationLog.some((r) => r.sourceType === "expense_routine" && r.sourceId === erId && r.bk === selB);
 
   const deleteER = (id: string) => {
     saveER(expRutin.filter((e) => e.id !== id));
@@ -65,7 +71,20 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
             <div key={e.id} className="flex items-center justify-between p-3 bg-red-50/80 border border-red-100/60 rounded-xl group">
               <div>
                 <p className="text-sm font-medium text-slate-700">{e.nama}</p>
-                <p className="text-xs text-slate-400">{e.kat} · {e.tipe === "tetap" ? "Tetap" : "Cicilan"}</p>
+                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                  <span className="text-xs text-slate-400">{e.kat} · {e.tipe === "tetap" ? "Tetap" : "Cicilan"}</span>
+                  {bankName(e.bankId) && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-md">{bankName(e.bankId)}</span>
+                  )}
+                  {e.tglBayar && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md">Tgl {e.tglBayar}</span>
+                  )}
+                  {e.realisasi === "manual" && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${isRealized(e.id) ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                      {isRealized(e.id) ? "Terealisasi" : "Manual"}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-red-500">-{fmt(e.jumlah)}</span>
@@ -87,7 +106,15 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
               <div key={h.id} className="flex items-center justify-between p-3 bg-amber-50/80 border border-amber-100/60 rounded-xl">
                 <div>
                   <p className="text-sm font-medium text-slate-700">{h.nama}</p>
-                  <p className="text-xs text-slate-400">Cicilan otomatis</p>
+                  <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                    <span className="text-xs text-slate-400">Cicilan</span>
+                    {bankName(h.bankId) && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-md">{bankName(h.bankId)}</span>
+                    )}
+                    {h.tglBayar && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md">Tgl {h.tglBayar}</span>
+                    )}
+                  </div>
                 </div>
                 <span className="text-sm font-bold text-amber-600">-{fmt(h.cicilan)}</span>
               </div>
@@ -111,7 +138,13 @@ export default function PengeluaranPanel({ onAddExtra, onAddRutin }: Props) {
             <div key={x.id} className="flex items-center justify-between p-3 bg-slate-50/80 border border-slate-100/60 rounded-xl group">
               <div>
                 <p className="text-sm font-medium text-slate-700">{x.desc}</p>
-                <p className="text-xs text-slate-400">{x.kat}</p>
+                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                  <span className="text-xs text-slate-400">{x.kat}</span>
+                  {x.tgl && <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md">{x.tgl}</span>}
+                  {x.status === "belum" && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded-md">Belum Terealisasi</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-red-500">-{fmt(x.jumlah)}</span>

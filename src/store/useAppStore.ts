@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, MonthlySnapshot, AppData } from "@/lib/types";
+import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, MonthlySnapshot, RealizationLog, AppData } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { fetchCryptoPrices, fetchStockPrices } from "@/lib/api";
-import { ymk, kym, currentYM, computeMonthTotals, computeNetWorth, calcInvValue, firstDataMonth } from "@/lib/helpers";
+import { ymk, kym, currentYM, computeMonthTotals, computeNetWorth, calcInvValue, firstDataMonth, isExpRutinActive } from "@/lib/helpers";
 import {
   dbToBank, bankToDb,
   dbToBankTransfer, bankTransferToDb,
@@ -15,6 +15,7 @@ import {
   dbToHoliday, holidayToDb,
   dbToBudget, budgetToDb,
   dbToSnapshot, snapshotToDb,
+  dbToRealizationLog, realizationLogToDb,
 } from "@/lib/supabase/mappers";
 
 function getSupabase() {
@@ -34,6 +35,7 @@ interface AppStore {
   inv: Investasi[];
   budgets: Budget[];
   snapshots: MonthlySnapshot[];
+  realizationLog: RealizationLog[];
   cuti: Record<string, number[]>;
   selB: string;
   cryptoLoading: boolean;
@@ -42,6 +44,7 @@ interface AppStore {
 
   init: (uid: string) => Promise<void>;
   captureSnapshots: () => Promise<void>;
+  autoRealize: () => Promise<void>;
   setSelB: (v: string) => void;
 
   saveBanks: (banks: Bank[]) => void;
@@ -68,6 +71,9 @@ interface AppStore {
   delBudget: (id: string) => void;
   saveCuti: (c: Record<string, number[]>) => void;
 
+  realizeRoutine: (type: "income" | "expense", sourceId: string, bk: string) => Promise<void>;
+  realizeExtra: (type: "income" | "expense", itemId: string) => Promise<void>;
+
   doBankTransfer: (t: BankTransfer) => void;
   loadCryptoPrices: () => Promise<void>;
   loadStockPrices: () => Promise<void>;
@@ -89,6 +95,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   inv: [],
   budgets: [],
   snapshots: [],
+  realizationLog: [],
   cuti: {},
   selB: (() => { const { y, m } = currentYM(); return ymk(y, m); })(),
   cryptoLoading: false,
@@ -112,6 +119,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         { data: holidays, error: e9 },
         { data: budgetsData, error: e10 },
         { data: snapshotsData, error: e11 },
+        { data: realizationData, error: e12 },
       ] = await Promise.all([
         sb.from("banks").select("*"),
         sb.from("bank_transfers").select("*"),
@@ -124,9 +132,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         sb.from("holidays").select("*"),
         sb.from("budgets").select("*"),
         sb.from("monthly_snapshots").select("*"),
+        sb.from("realization_log").select("*"),
       ]);
 
-      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11].filter(Boolean);
+      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12].filter(Boolean);
       if (errors.length) {
         console.error("Supabase load errors:", errors);
       }
@@ -148,12 +157,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
         inv: (investments ?? []).map(dbToInvestasi),
         budgets: (budgetsData ?? []).map(dbToBudget),
         snapshots: (snapshotsData ?? []).map(dbToSnapshot),
+        realizationLog: (realizationData ?? []).map(dbToRealizationLog),
         cuti: cutiMap,
         userId: uid,
       });
 
       // Freeze completed months & refresh current-month snapshot (non-blocking).
       get().captureSnapshots();
+      // Auto-realize transactions that are due (non-blocking).
+      get().autoRealize();
     } catch (err) {
       console.error("Failed to load data:", err);
       set({ userId: uid, loadError: "Gagal memuat data. Periksa koneksi internet Anda." });
@@ -220,6 +232,99 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const sb = getSupabase();
     await sb.from("monthly_snapshots").upsert(toUpsert.map((x) => snapshotToDb(x, uid)));
+  },
+
+  autoRealize: async () => {
+    const s = get();
+    const uid = s.userId;
+    if (!uid) return;
+
+    const today = new Date();
+    const todayDay = today.getDate();
+    const { y: cy, m: cm } = currentYM();
+    const curBk = ymk(cy, cm);
+    const sb = getSupabase();
+    const existingKeys = new Set(s.realizationLog.map((r) => `${r.sourceType}:${r.sourceId}:${r.bk}`));
+    const newLogs: RealizationLog[] = [];
+    let banks = [...s.banks];
+
+    // Auto-realize routine income
+    for (const pr of s.pendapatanRutin) {
+      if (!pr.aktif || pr.realisasi !== "otomatis") continue;
+      if (!isExpRutinActive(pr.mulaiY, pr.mulaiM, pr.selesaiY, pr.selesaiM, cy, cm)) continue;
+      const key = `income_routine:${pr.id}:${curBk}`;
+      if (existingKeys.has(key)) continue;
+      if (pr.tglBayar != null && pr.tglBayar > todayDay) continue;
+
+      if (pr.bankId) {
+        banks = banks.map((b) => b.id === pr.bankId ? { ...b, saldo: b.saldo + pr.jumlah } : b);
+      }
+      const log: RealizationLog = { id: `${uid}_ir_${pr.id}_${curBk}`, sourceType: "income_routine", sourceId: pr.id, bk: curBk };
+      newLogs.push(log);
+      existingKeys.add(key);
+    }
+
+    // Auto-realize routine expenses
+    for (const er of s.expRutin) {
+      if (er.realisasi !== "otomatis") continue;
+      if (!isExpRutinActive(er.mulaiY, er.mulaiM, er.selesaiY, er.selesaiM, cy, cm)) continue;
+      const key = `expense_routine:${er.id}:${curBk}`;
+      if (existingKeys.has(key)) continue;
+      if (er.tglBayar != null && er.tglBayar > todayDay) continue;
+
+      if (er.bankId) {
+        banks = banks.map((b) => b.id === er.bankId ? { ...b, saldo: b.saldo - er.jumlah } : b);
+      }
+      const log: RealizationLog = { id: `${uid}_er_${er.id}_${curBk}`, sourceType: "expense_routine", sourceId: er.id, bk: curBk };
+      newLogs.push(log);
+      existingKeys.add(key);
+    }
+
+    // Auto-realize extra income with status "belum" and realisasi "otomatis"
+    let incExUpdated = [...s.incEx];
+    for (let i = 0; i < incExUpdated.length; i++) {
+      const x = incExUpdated[i];
+      if (x.status !== "belum" || x.realisasi !== "otomatis") continue;
+      const shouldRealize = x.tgl ? x.tgl <= today.toISOString().slice(0, 10) : x.bk <= curBk;
+      if (!shouldRealize) continue;
+
+      incExUpdated[i] = { ...x, status: "terjadi" };
+      if (x.sumber) {
+        banks = banks.map((b) => b.id === x.sumber ? { ...b, saldo: b.saldo + x.jumlah } : b);
+      }
+      await sb.from("income_extra").update({ status: "terjadi" }).eq("id", x.id);
+    }
+
+    // Auto-realize extra expenses with status "belum" and realisasi "otomatis"
+    let expExUpdated = [...s.expEx];
+    for (let i = 0; i < expExUpdated.length; i++) {
+      const x = expExUpdated[i];
+      if (x.status !== "belum" || x.realisasi !== "otomatis") continue;
+      const shouldRealize = x.tgl ? x.tgl <= today.toISOString().slice(0, 10) : x.bk <= curBk;
+      if (!shouldRealize) continue;
+
+      expExUpdated[i] = { ...x, status: "terjadi" };
+      if (x.sumber) {
+        banks = banks.map((b) => b.id === x.sumber ? { ...b, saldo: b.saldo - x.jumlah } : b);
+      }
+      await sb.from("expense_extra").update({ status: "terjadi" }).eq("id", x.id);
+    }
+
+    if (newLogs.length > 0 || incExUpdated !== s.incEx || expExUpdated !== s.expEx) {
+      const allLogs = [...s.realizationLog, ...newLogs];
+      set({ realizationLog: allLogs, banks, incEx: incExUpdated, expEx: expExUpdated });
+
+      if (newLogs.length > 0) {
+        await sb.from("realization_log").upsert(newLogs.map((r) => realizationLogToDb(r, uid)));
+      }
+      // Update bank saldos
+      for (const b of banks) {
+        const orig = s.banks.find((ob) => ob.id === b.id);
+        if (orig && orig.saldo !== b.saldo) {
+          await sb.from("banks").update({ saldo: b.saldo }).eq("id", b.id);
+        }
+      }
+    }
   },
 
   setSelB: (v) => set({ selB: v }),
@@ -436,6 +541,83 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
+  realizeRoutine: async (type, sourceId, bk) => {
+    const s = get();
+    const uid = s.userId;
+    if (!uid) return;
+
+    const isIncome = type === "income";
+    const item = isIncome
+      ? s.pendapatanRutin.find((p) => p.id === sourceId)
+      : s.expRutin.find((e) => e.id === sourceId);
+    if (!item) return;
+
+    const bankId = item.bankId;
+    let banks = s.banks;
+    if (bankId) {
+      banks = banks.map((b) =>
+        b.id === bankId ? { ...b, saldo: b.saldo + (isIncome ? item.jumlah : -item.jumlah) } : b
+      );
+    }
+
+    const log: RealizationLog = {
+      id: `${uid}_${isIncome ? "ir" : "er"}_${sourceId}_${bk}`,
+      sourceType: isIncome ? "income_routine" : "expense_routine",
+      sourceId,
+      bk,
+    };
+
+    set({ realizationLog: [...s.realizationLog, log], banks });
+
+    const sb = getSupabase();
+    await sb.from("realization_log").upsert(realizationLogToDb(log, uid));
+    if (bankId) {
+      const updatedBank = banks.find((b) => b.id === bankId);
+      if (updatedBank) {
+        await sb.from("banks").update({ saldo: updatedBank.saldo }).eq("id", bankId);
+      }
+    }
+  },
+
+  realizeExtra: async (type, itemId) => {
+    const s = get();
+    const uid = s.userId;
+    if (!uid) return;
+    const sb = getSupabase();
+
+    if (type === "income") {
+      const item = s.incEx.find((x) => x.id === itemId);
+      if (!item || item.status === "terjadi") return;
+
+      const updated = { ...item, status: "terjadi" as const };
+      let banks = s.banks;
+      if (item.sumber) {
+        banks = banks.map((b) => b.id === item.sumber ? { ...b, saldo: b.saldo + item.jumlah } : b);
+      }
+      set({ incEx: s.incEx.map((x) => x.id === itemId ? updated : x), banks });
+      await sb.from("income_extra").update({ status: "terjadi" }).eq("id", itemId);
+      if (item.sumber) {
+        const updatedBank = banks.find((b) => b.id === item.sumber);
+        if (updatedBank) await sb.from("banks").update({ saldo: updatedBank.saldo }).eq("id", item.sumber);
+      }
+    } else {
+      const item = s.expEx.find((x) => x.id === itemId);
+      if (!item || item.status === "terjadi") return;
+
+      const updated = { ...item, status: "terjadi" as const };
+      let banks = s.banks;
+      if (item.sumber) {
+        banks = banks.map((b) => b.id === item.sumber ? { ...b, saldo: b.saldo - item.jumlah } : b);
+      }
+      set({ expEx: s.expEx.map((x) => x.id === itemId ? updated : x), banks });
+      await sb.from("expense_extra").update({ status: "terjadi" }).eq("id", itemId);
+      if (item.sumber) {
+        const updatedBank = banks.find((b) => b.id === item.sumber);
+        if (updatedBank) await sb.from("banks").update({ saldo: updatedBank.saldo }).eq("id", item.sumber);
+      }
+    }
+  },
+
   doBankTransfer: async (t) => {
     const banks = get().banks.map((b) => {
       if (b.id === t.dari) return { ...b, saldo: b.saldo - t.jumlah };
@@ -543,6 +725,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       inv: s.inv,
       budgets: s.budgets,
       snapshots: s.snapshots,
+      realizationLog: s.realizationLog,
       cuti: s.cuti,
     };
   },
@@ -566,6 +749,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sb.from("budgets").delete().neq("id", ""),
       sb.from("monthly_snapshots").delete().neq("id", ""),
       sb.from("holidays").delete().neq("id", "0"),
+      sb.from("realization_log").delete().neq("id", ""),
     ]);
 
     // Insert all data
@@ -579,6 +763,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (data.inv.length) await sb.from("investments").insert(data.inv.map((i) => investasiToDb(i, uid)));
     if (data.budgets?.length) await sb.from("budgets").insert(data.budgets.map((b) => budgetToDb(b, uid)));
     if (data.snapshots?.length) await sb.from("monthly_snapshots").insert(data.snapshots.map((x) => snapshotToDb(x, uid)));
+    if (data.realizationLog?.length) await sb.from("realization_log").insert(data.realizationLog.map((r) => realizationLogToDb(r, uid)));
 
     for (const [bk, days] of Object.entries(data.cuti)) {
       await sb.from("holidays").upsert(holidayToDb(bk, days, uid), { onConflict: "user_id,bk" });
