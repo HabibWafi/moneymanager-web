@@ -12,6 +12,7 @@ import MonthYearPicker from "@/components/ui/MonthYearPicker";
 export default function AddPendapatanRutinModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pendapatanRutin = useAppStore((s) => s.pendapatanRutin);
   const savePR = useAppStore((s) => s.savePR);
+  const maybeRealizeNew = useAppStore((s) => s.maybeRealizeNew);
   const banks = useAppStore((s) => s.banks);
   const toast = useToast();
 
@@ -32,12 +33,14 @@ export default function AddPendapatanRutinModal({ open, onClose }: { open: boole
 
   const handleSubmit = () => {
     if (!nama || !jumlah || Number(jumlah) <= 0) return;
-    savePR([...pendapatanRutin, {
+    const newItem = {
       id: nanoid(), nama, jumlah: Number(jumlah), tipe, kat, aktif: true,
       bankId: bankId || undefined,
       tglBayar: tglBayarAktif ? tglBayar : undefined,
       mulaiY, mulaiM, selesaiY, selesaiM, realisasi,
-    }]);
+    };
+    savePR([...pendapatanRutin, newItem]);
+    maybeRealizeNew("income", newItem);
     toast.add("Pendapatan rutin berhasil ditambahkan", "success");
     setNama("");
     setJumlah("");

@@ -133,9 +133,11 @@ export function computeMonthTotals(
   const bk = ymk(y, m);
   const cur = y * 12 + m;
 
-  let income = s.pendapatanRutin.filter((p) => p.aktif).reduce((a, p) => {
-    return a + (p.tipe === "tetap" ? p.jumlah : p.jumlah * hk);
-  }, 0);
+  let income = s.pendapatanRutin
+    .filter((p) => p.aktif && isExpRutinActive(p.mulaiY, p.mulaiM, p.selesaiY, p.selesaiM, y, m))
+    .reduce((a, p) => {
+      return a + (p.tipe === "tetap" ? p.jumlah : p.jumlah * hk);
+    }, 0);
   if (includeExtra) {
     income += s.incEx.filter((x) => x.bk === bk).reduce((a, x) => a + x.jumlah, 0);
   }
