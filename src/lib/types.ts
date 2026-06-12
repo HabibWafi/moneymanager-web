@@ -127,6 +127,16 @@ export interface RealizationLog {
   sourceType: "income_routine" | "expense_routine" | "income_extra" | "expense_extra";
   sourceId: string;
   bk: string;
+  jumlah: number;
+  bankId?: string;
+}
+
+export interface DebtPayment {
+  id: string;
+  hutangId: string;
+  bk: string;
+  jumlah: number;
+  bankId: string;
 }
 
 export interface BankTransfer {
@@ -151,4 +161,5 @@ export interface AppData {
   budgets: Budget[];
   snapshots: MonthlySnapshot[];
   realizationLog: RealizationLog[];
+  debtPayments: DebtPayment[];
 }

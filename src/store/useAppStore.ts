@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, MonthlySnapshot, RealizationLog, AppData } from "@/lib/types";
+import { Bank, BankTransfer, PendapatanRutin, IncomeExtra, ExpRutin, ExpExtra, Hutang, Investasi, Budget, MonthlySnapshot, RealizationLog, DebtPayment, AppData } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { fetchCryptoPrices, fetchStockPrices } from "@/lib/api";
 import { ymk, kym, currentYM, computeMonthTotals, computeNetWorth, calcInvValue, firstDataMonth, isExpRutinActive } from "@/lib/helpers";
@@ -16,6 +16,7 @@ import {
   dbToBudget, budgetToDb,
   dbToSnapshot, snapshotToDb,
   dbToRealizationLog, realizationLogToDb,
+  dbToDebtPayment, debtPaymentToDb,
 } from "@/lib/supabase/mappers";
 
 function getSupabase() {
@@ -36,6 +37,7 @@ interface AppStore {
   budgets: Budget[];
   snapshots: MonthlySnapshot[];
   realizationLog: RealizationLog[];
+  debtPayments: DebtPayment[];
   cuti: Record<string, number[]>;
   selB: string;
   cryptoLoading: boolean;
@@ -60,7 +62,8 @@ interface AppStore {
   addHutang: (h: Hutang) => void;
   updHutang: (id: string, partial: Partial<Hutang>) => void;
   delHutang: (id: string) => void;
-  bayarHutang: (hutangId: string, jumlah: number, bankId: string) => void;
+  bayarHutang: (hutangId: string, jumlah: number, bankId: string, bk: string) => void;
+  undoBayarHutang: (hutangId: string, bk: string) => void;
   saveInv: (items: Investasi[]) => void;
   addInv: (item: Investasi) => void;
   updInv: (id: string, partial: Partial<Investasi>) => void;
@@ -72,7 +75,9 @@ interface AppStore {
   saveCuti: (c: Record<string, number[]>) => void;
 
   realizeRoutine: (type: "income" | "expense", sourceId: string, bk: string) => Promise<void>;
+  unrealizeRoutine: (type: "income" | "expense", sourceId: string, bk: string) => Promise<void>;
   realizeExtra: (type: "income" | "expense", itemId: string) => Promise<void>;
+  maybeRealizeNew: (type: "income" | "expense", item: PendapatanRutin | ExpRutin) => Promise<void>;
 
   doBankTransfer: (t: BankTransfer) => void;
   loadCryptoPrices: () => Promise<void>;
@@ -96,6 +101,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   budgets: [],
   snapshots: [],
   realizationLog: [],
+  debtPayments: [],
   cuti: {},
   selB: (() => { const { y, m } = currentYM(); return ymk(y, m); })(),
   cryptoLoading: false,
@@ -120,6 +126,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         { data: budgetsData, error: e10 },
         { data: snapshotsData, error: e11 },
         { data: realizationData, error: e12 },
+        { data: debtPaymentsData, error: e13 },
       ] = await Promise.all([
         sb.from("banks").select("*"),
         sb.from("bank_transfers").select("*"),
@@ -133,9 +140,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         sb.from("budgets").select("*"),
         sb.from("monthly_snapshots").select("*"),
         sb.from("realization_log").select("*"),
+        sb.from("debt_payments").select("*"),
       ]);
 
-      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12].filter(Boolean);
+      const errors = [e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13].filter(Boolean);
       if (errors.length) {
         console.error("Supabase load errors:", errors);
       }
@@ -158,6 +166,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         budgets: (budgetsData ?? []).map(dbToBudget),
         snapshots: (snapshotsData ?? []).map(dbToSnapshot),
         realizationLog: (realizationData ?? []).map(dbToRealizationLog),
+        debtPayments: (debtPaymentsData ?? []).map(dbToDebtPayment),
         cuti: cutiMap,
         userId: uid,
       });
@@ -256,10 +265,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (existingKeys.has(key)) continue;
       if (pr.tglBayar != null && pr.tglBayar > todayDay) continue;
 
+      const amt = pr.jumlah;
       if (pr.bankId) {
-        banks = banks.map((b) => b.id === pr.bankId ? { ...b, saldo: b.saldo + pr.jumlah } : b);
+        banks = banks.map((b) => b.id === pr.bankId ? { ...b, saldo: b.saldo + amt } : b);
       }
-      const log: RealizationLog = { id: `${uid}_ir_${pr.id}_${curBk}`, sourceType: "income_routine", sourceId: pr.id, bk: curBk };
+      const log: RealizationLog = { id: `${uid}_ir_${pr.id}_${curBk}`, sourceType: "income_routine", sourceId: pr.id, bk: curBk, jumlah: amt, bankId: pr.bankId };
       newLogs.push(log);
       existingKeys.add(key);
     }
@@ -272,10 +282,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (existingKeys.has(key)) continue;
       if (er.tglBayar != null && er.tglBayar > todayDay) continue;
 
+      const erAmt = er.jumlah;
       if (er.bankId) {
-        banks = banks.map((b) => b.id === er.bankId ? { ...b, saldo: b.saldo - er.jumlah } : b);
+        banks = banks.map((b) => b.id === er.bankId ? { ...b, saldo: b.saldo - erAmt } : b);
       }
-      const log: RealizationLog = { id: `${uid}_er_${er.id}_${curBk}`, sourceType: "expense_routine", sourceId: er.id, bk: curBk };
+      const log: RealizationLog = { id: `${uid}_er_${er.id}_${curBk}`, sourceType: "expense_routine", sourceId: er.id, bk: curBk, jumlah: erAmt, bankId: er.bankId };
       newLogs.push(log);
       existingKeys.add(key);
     }
@@ -437,16 +448,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await sb.from("debts").delete().eq("id", id);
   },
 
-  bayarHutang: async (hutangId, jumlah, bankId) => {
-    const hutang = get().hutang.map((h) =>
+  bayarHutang: async (hutangId, jumlah, bankId, bk) => {
+    const s = get();
+    const uid = s.userId;
+
+    const hutang = s.hutang.map((h) =>
       h.id === hutangId ? { ...h, sudah: h.sudah + jumlah } : h
     );
-    const banks = get().banks.map((b) =>
+    const banks = s.banks.map((b) =>
       b.id === bankId ? { ...b, saldo: b.saldo - jumlah } : b
     );
-    set({ hutang, banks });
 
-    const uid = get().userId;
+    const dp: DebtPayment = {
+      id: `${uid}_dp_${hutangId}_${bk}`,
+      hutangId,
+      bk,
+      jumlah,
+      bankId,
+    };
+
+    set({ hutang, banks, debtPayments: [...s.debtPayments, dp] });
+
     if (!uid) return;
     const sb = getSupabase();
     const updatedH = hutang.find((h) => h.id === hutangId);
@@ -456,6 +478,40 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const updatedB = banks.find((b) => b.id === bankId);
     if (updatedB) {
       await sb.from("banks").update({ saldo: updatedB.saldo }).eq("id", bankId);
+    }
+    await sb.from("debt_payments").upsert(debtPaymentToDb(dp, uid));
+  },
+
+  undoBayarHutang: async (hutangId, bk) => {
+    const s = get();
+    const uid = s.userId;
+
+    const dp = s.debtPayments.find((d) => d.hutangId === hutangId && d.bk === bk);
+    if (!dp) return;
+
+    const hutang = s.hutang.map((h) =>
+      h.id === hutangId ? { ...h, sudah: h.sudah - dp.jumlah } : h
+    );
+    const banks = s.banks.map((b) =>
+      b.id === dp.bankId ? { ...b, saldo: b.saldo + dp.jumlah } : b
+    );
+
+    set({
+      hutang,
+      banks,
+      debtPayments: s.debtPayments.filter((d) => d.id !== dp.id),
+    });
+
+    if (!uid) return;
+    const sb = getSupabase();
+    await sb.from("debt_payments").delete().eq("id", dp.id);
+    const updatedH = hutang.find((h) => h.id === hutangId);
+    if (updatedH) {
+      await sb.from("debts").update({ sudah: updatedH.sudah }).eq("id", hutangId);
+    }
+    const updatedB = banks.find((b) => b.id === dp.bankId);
+    if (updatedB) {
+      await sb.from("banks").update({ saldo: updatedB.saldo }).eq("id", dp.bankId);
     }
   },
 
@@ -553,10 +609,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!item) return;
 
     const bankId = item.bankId;
+    const amt = item.jumlah;
     let banks = s.banks;
     if (bankId) {
       banks = banks.map((b) =>
-        b.id === bankId ? { ...b, saldo: b.saldo + (isIncome ? item.jumlah : -item.jumlah) } : b
+        b.id === bankId ? { ...b, saldo: b.saldo + (isIncome ? amt : -amt) } : b
       );
     }
 
@@ -565,6 +622,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sourceType: isIncome ? "income_routine" : "expense_routine",
       sourceId,
       bk,
+      jumlah: amt,
+      bankId,
     };
 
     set({ realizationLog: [...s.realizationLog, log], banks });
@@ -575,6 +634,38 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const updatedBank = banks.find((b) => b.id === bankId);
       if (updatedBank) {
         await sb.from("banks").update({ saldo: updatedBank.saldo }).eq("id", bankId);
+      }
+    }
+  },
+
+  unrealizeRoutine: async (type, sourceId, bk) => {
+    const s = get();
+    const uid = s.userId;
+    if (!uid) return;
+
+    const isIncome = type === "income";
+    const sourceType = isIncome ? "income_routine" : "expense_routine";
+    const log = s.realizationLog.find((r) => r.sourceType === sourceType && r.sourceId === sourceId && r.bk === bk);
+    if (!log) return;
+
+    let banks = s.banks;
+    if (log.bankId) {
+      banks = banks.map((b) =>
+        b.id === log.bankId ? { ...b, saldo: b.saldo + (isIncome ? -log.jumlah : log.jumlah) } : b
+      );
+    }
+
+    set({
+      realizationLog: s.realizationLog.filter((r) => r.id !== log.id),
+      banks,
+    });
+
+    const sb = getSupabase();
+    await sb.from("realization_log").delete().eq("id", log.id);
+    if (log.bankId) {
+      const updatedBank = banks.find((b) => b.id === log.bankId);
+      if (updatedBank) {
+        await sb.from("banks").update({ saldo: updatedBank.saldo }).eq("id", log.bankId);
       }
     }
   },
@@ -616,6 +707,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
         if (updatedBank) await sb.from("banks").update({ saldo: updatedBank.saldo }).eq("id", item.sumber);
       }
     }
+  },
+
+  maybeRealizeNew: async (type, item) => {
+    if (item.realisasi !== "otomatis") return;
+    const { y: cy, m: cm } = currentYM();
+    if (!isExpRutinActive(item.mulaiY, item.mulaiM, (item as any).selesaiY, (item as any).selesaiM, cy, cm)) return;
+    const today = new Date().getDate();
+    if (item.tglBayar != null && item.tglBayar > today) return;
+
+    const s = get();
+    const curBk = ymk(cy, cm);
+    const sourceType = type === "income" ? "income_routine" : "expense_routine";
+    const alreadyRealized = s.realizationLog.some((r) => r.sourceType === sourceType && r.sourceId === item.id && r.bk === curBk);
+    if (alreadyRealized) return;
+
+    await get().realizeRoutine(type, item.id, curBk);
   },
 
   doBankTransfer: async (t) => {
@@ -726,6 +833,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       budgets: s.budgets,
       snapshots: s.snapshots,
       realizationLog: s.realizationLog,
+      debtPayments: s.debtPayments,
       cuti: s.cuti,
     };
   },
@@ -750,6 +858,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sb.from("monthly_snapshots").delete().neq("id", ""),
       sb.from("holidays").delete().neq("id", "0"),
       sb.from("realization_log").delete().neq("id", ""),
+      sb.from("debt_payments").delete().neq("id", ""),
     ]);
 
     // Insert all data
@@ -764,6 +873,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (data.budgets?.length) await sb.from("budgets").insert(data.budgets.map((b) => budgetToDb(b, uid)));
     if (data.snapshots?.length) await sb.from("monthly_snapshots").insert(data.snapshots.map((x) => snapshotToDb(x, uid)));
     if (data.realizationLog?.length) await sb.from("realization_log").insert(data.realizationLog.map((r) => realizationLogToDb(r, uid)));
+    if (data.debtPayments?.length) await sb.from("debt_payments").insert(data.debtPayments.map((d) => debtPaymentToDb(d, uid)));
 
     for (const [bk, days] of Object.entries(data.cuti)) {
       await sb.from("holidays").upsert(holidayToDb(bk, days, uid), { onConflict: "user_id,bk" });

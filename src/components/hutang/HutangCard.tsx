@@ -1,10 +1,13 @@
 "use client";
+import { useState } from "react";
 import { Hutang } from "@/lib/types";
-import { fmt } from "@/lib/helpers";
+import { fmt, ymk, currentYM } from "@/lib/helpers";
+import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "@/components/ui/Toast";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { Trash2, Banknote, CalendarClock } from "lucide-react";
+import { Trash2, Banknote, CalendarClock, ChevronDown, ChevronUp, Check, Undo2 } from "lucide-react";
 
 interface Props {
   item: Hutang;
@@ -20,11 +23,20 @@ function getDueStatus(tglBayar: number): { label: string; color: string } {
 }
 
 export default function HutangCard({ item, onDelete, onBayar }: Props) {
+  const debtPayments = useAppStore((s) => s.debtPayments);
+  const undoBayarHutang = useAppStore((s) => s.undoBayarHutang);
+  const banks = useAppStore((s) => s.banks);
+  const toast = useToast();
+
+  const [showHistory, setShowHistory] = useState(false);
+
   const pct = item.pokok > 0 ? Math.min((item.sudah / item.pokok) * 100, 100) : 0;
   const sisa = item.pokok - item.sudah;
   const lunas = sisa <= 0;
 
   const now = new Date();
+  const { y: cy, m: cm } = currentYM();
+  const curBk = ymk(cy, cm);
   const curMonth = now.getFullYear() * 12 + (now.getMonth() + 1);
   const start = item.mulaiY * 12 + item.mulaiM;
   const end = item.selesaiY * 12 + item.selesaiM;
@@ -32,6 +44,15 @@ export default function HutangCard({ item, onDelete, onBayar }: Props) {
 
   const showDueStatus = item.htipe === "cicilan" && item.tglBayar && !lunas && isActiveMonth;
   const dueStatus = showDueStatus ? getDueStatus(item.tglBayar!) : null;
+
+  const payments = debtPayments
+    .filter((d) => d.hutangId === item.id)
+    .sort((a, b) => a.bk.localeCompare(b.bk));
+
+  const handleUndo = (bk: string) => {
+    undoBayarHutang(item.id, bk);
+    toast.add("Pembayaran dibatalkan", "info");
+  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -90,6 +111,51 @@ export default function HutangCard({ item, onDelete, onBayar }: Props) {
         </span>
         <span className="text-[10px] font-semibold text-slate-500">{Math.round(pct)}%</span>
       </div>
+
+      {payments.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors w-full justify-between"
+          >
+            <span>Riwayat Pembayaran ({payments.length})</span>
+            {showHistory ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          {showHistory && (
+            <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+              {payments.map((dp) => {
+                const canUndo = dp.bk === curBk;
+                const bankNm = banks.find((b) => b.id === dp.bankId)?.nama || "-";
+                const [py, pm] = dp.bk.split("-").map(Number);
+                const label = new Date(py, pm - 1, 1).toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+                return (
+                  <div key={dp.id} className="flex items-center justify-between p-2 bg-emerald-50/80 border border-emerald-100/60 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Check size={12} className="text-emerald-500" />
+                      <div>
+                        <p className="text-xs font-medium text-slate-700">{label}</p>
+                        <p className="text-[10px] text-slate-400">{bankNm}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-emerald-600">{fmt(dp.jumlah)}</span>
+                      {canUndo && (
+                        <button
+                          onClick={() => handleUndo(dp.bk)}
+                          className="p-1 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
+                          title="Batalkan pembayaran bulan ini"
+                        >
+                          <Undo2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {!lunas && (
         <div className="mt-3 pt-3 border-t border-slate-100">

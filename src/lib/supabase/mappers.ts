@@ -10,6 +10,7 @@ import type {
   Budget,
   MonthlySnapshot,
   RealizationLog,
+  DebtPayment,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -397,6 +398,8 @@ export function dbToRealizationLog(row: any): RealizationLog {
     sourceType: row.source_type,
     sourceId: row.source_id,
     bk: row.bk,
+    jumlah: Number(row.jumlah) || 0,
+    bankId: row.bank_id || undefined,
   };
 }
 
@@ -407,5 +410,32 @@ export function realizationLogToDb(r: RealizationLog, userId: string) {
     source_type: r.sourceType,
     source_id: r.sourceId,
     bk: r.bk,
+    jumlah: r.jumlah,
+    bank_id: r.bankId || null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// DebtPayment
+// ---------------------------------------------------------------------------
+
+export function dbToDebtPayment(row: any): DebtPayment {
+  return {
+    id: row.id,
+    hutangId: row.hutang_id,
+    bk: row.bk,
+    jumlah: Number(row.jumlah),
+    bankId: row.bank_id,
+  };
+}
+
+export function debtPaymentToDb(dp: DebtPayment, userId: string) {
+  return {
+    id: dp.id,
+    user_id: userId,
+    hutang_id: dp.hutangId,
+    bk: dp.bk,
+    jumlah: dp.jumlah,
+    bank_id: dp.bankId,
   };
 }

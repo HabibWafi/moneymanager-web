@@ -12,6 +12,7 @@ import MonthYearPicker from "@/components/ui/MonthYearPicker";
 export default function AddExpRutinModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const expRutin = useAppStore((s) => s.expRutin);
   const saveER = useAppStore((s) => s.saveER);
+  const maybeRealizeNew = useAppStore((s) => s.maybeRealizeNew);
   const banks = useAppStore((s) => s.banks);
   const toast = useToast();
 
@@ -32,13 +33,15 @@ export default function AddExpRutinModal({ open, onClose }: { open: boolean; onC
 
   const handleSubmit = () => {
     if (!nama || !jumlah || Number(jumlah) <= 0) return;
-    saveER([...expRutin, {
+    const newItem = {
       id: nanoid(), nama, jumlah: Number(jumlah), tipe, kat,
       mulaiY, mulaiM, selesaiY, selesaiM,
       bankId: bankId || undefined,
       tglBayar: tglBayarAktif ? tglBayar : undefined,
       realisasi,
-    }]);
+    };
+    saveER([...expRutin, newItem]);
+    maybeRealizeNew("expense", newItem);
     toast.add("Pengeluaran rutin berhasil ditambahkan", "success");
     setNama("");
     setJumlah("");
